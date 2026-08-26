@@ -7,7 +7,7 @@
 ## 🌟 Tính Năng Nổi Bật
 
 1. **Bóc tách công đoạn & tính tiền tức thì**:
-   - Tự động nhận diện cú pháp tiếng Việt: `"Nối dây viền 200k nối thun 120k. May cổ lé 120k. May lai 100k"`.
+   - Tự động nhận diện cú pháp tiếng Việt theo nội dung công đoạn và giá tiền.
    - Hỗ trợ đầy đủ đơn vị tiền tệ: `k`, `nghìn`, `tr`, `triệu`, số âm, tiền tạm ứng, giảm giá.
 2. **Quét ảnh sổ tay & hóa đơn (AI OCR Vision)**:
    - Chụp trực tiếp từ camera hoặc tải ảnh sổ tay ghi chép, AI sẽ tự động đọc chữ và điền vào bảng.
@@ -59,7 +59,11 @@ Sau đó, tại **Project Settings → Environment Variables**, thêm cho cả P
 
 | Biến | Giá trị |
 | --- | --- |
-| `BACKUP_TARGET_EMAIL` | Địa chỉ nhận file khôi phục (chỉ lưu trên máy chủ) |
+| `APP_LOGIN_EMAIL_1` / `APP_LOGIN_PASSWORD_1` | Email và mật khẩu của người đăng nhập thứ nhất, chỉ lưu trên Vercel |
+| `APP_LOGIN_EMAIL_2` / `APP_LOGIN_PASSWORD_2` | Email và mật khẩu của người đăng nhập thứ hai, chỉ lưu trên Vercel |
+| `APP_LOGIN_ACCOUNTS` | Tùy chọn: chuỗi JSON cho tài khoản được quản lý tập trung |
+| `APP_SESSION_SECRET` | Chuỗi ngẫu nhiên tối thiểu 32 ký tự để ký phiên đăng nhập |
+| `BACKUP_TARGET_EMAILS` | Một hoặc nhiều email nhận file khôi phục, cách nhau bằng dấu phẩy/chấm phẩy |
 | `SMTP_HOST` | Máy chủ SMTP, ví dụ `smtp.gmail.com` |
 | `SMTP_PORT` | `465` (SSL) hoặc `587` (STARTTLS) |
 | `SMTP_USER` | Tài khoản gửi email |
@@ -67,7 +71,7 @@ Sau đó, tại **Project Settings → Environment Variables**, thêm cho cả P
 | `SMTP_FROM` | Địa chỉ hiển thị khi gửi (tùy chọn) |
 | `CRON_SECRET` | Chuỗi ngẫu nhiên tối thiểu 16 ký tự |
 
-`BACKUP_TARGET_EMAIL`, mật khẩu SMTP, Blob token và `CRON_SECRET` không xuất hiện trong giao diện web, JavaScript trình duyệt, hay repository. Ứng dụng lưu bản khôi phục mới nhất trong Blob riêng tư; trước khi xóa đơn hoặc xóa toàn bộ sổ, bản dữ liệu trước đó được giữ lại để phục hồi. Lịch Cron gửi tệp JSON mỗi ngày lúc `00:00 UTC` (khoảng 07:00 giờ Việt Nam; với Vercel Hobby có thể chạy trong giờ đó).
+`APP_LOGIN_ACCOUNTS`, `APP_SESSION_SECRET`, `BACKUP_TARGET_EMAILS`, mật khẩu SMTP, Blob token và `CRON_SECRET` không xuất hiện trong giao diện web, JavaScript trình duyệt, hay repository. Ứng dụng lưu bản khôi phục mới nhất trong Blob riêng tư; trước khi xóa đơn hoặc xóa toàn bộ sổ, bản dữ liệu trước đó được giữ lại để phục hồi. Lịch Cron gửi tệp JSON mỗi ngày lúc `00:00 UTC` (khoảng 07:00 giờ Việt Nam; với Vercel Hobby có thể chạy trong giờ đó).
 
 ### 3. Deploy lên Vercel
 

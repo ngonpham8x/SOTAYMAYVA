@@ -1,6 +1,7 @@
 import React from 'react';
 import { History, Settings, BarChart3, Phone, User, ShieldCheck } from 'lucide-react';
 import appLogo from '../assets/images/tailor_shop_logo_1787732514689.jpg';
+import { LogoutControl } from './AuthGate';
 
 interface HeaderProps {
   ownerName?: string;
@@ -110,6 +111,8 @@ export const Header: React.FC<HeaderProps> = ({
               title="Cài đặt thông tin tiệm may & tài khoản QR"
             >
               <Settings className="w-4 h-4" />
+            <LogoutControl />
+
             </button>
           </div>
         </div>

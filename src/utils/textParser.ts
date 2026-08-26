@@ -55,7 +55,7 @@ export function parseCurrencyAmount(rawStr: string): number {
 
 /**
  * Intelligent Vietnamese Piecework & Tailoring Parser
- * Automatically splits strings like "Nối dây viền 200k nối thun 120k. May cổ lé 120k. May lai 100k"
+ * Automatically splits Vietnamese tailoring and alteration text into work items and prices.
  */
 export function parseSewingText(input: string): ParsedItem[] {
   if (!input || !input.trim()) return [];

@@ -3,7 +3,6 @@ import {
   Mic,
   MicOff,
   Camera,
-  Sparkles,
   RotateCcw,
   Clipboard,
   Check,
@@ -117,17 +116,6 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
     }
   };
 
-  const handlePasteSample = () => {
-    const sampleText = 'Nối dây viền 200k nối thun 120k. May cổ lé 120k. May lai 100k. Đã tạm ứng 100k';
-    onChangeText(sampleText);
-    setPasteSuccess(true);
-    setPasteNotice('Đã nạp mẫu tin nhắn may sửa thử nghiệm!');
-    setTimeout(() => {
-      setPasteSuccess(false);
-      setPasteNotice(null);
-    }, 2500);
-  };
-
   const handleClear = () => {
     onChangeText('');
     setPasteNotice(null);
@@ -175,16 +163,6 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
               )}
             </button>
 
-            <button
-              type="button"
-              onClick={handlePasteSample}
-              className="hidden md:inline-flex items-center gap-1 px-2 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 rounded-lg border border-slate-200 transition-colors"
-              title="Nạp mẫu tin nhắn Zalo ví dụ"
-            >
-              <Sparkles className="w-3 h-3 text-amber-500" />
-              <span>Thử mẫu</span>
-            </button>
-
             {text && (
               <button
                 id="btn-clear-text"
@@ -228,7 +206,7 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
                 setPasteNotice(null);
               }, 2500);
             }}
-            placeholder="Dán tin nhắn Zalo, tin nhắn khách gửi hoặc gõ tại đây... Ví dụ: Nối dây viền 200k nối thun 120k. May cổ lé 120k. May lai 100k"
+            placeholder="Dán tin nhắn khách gửi hoặc gõ công đoạn và giá tiền tại đây..."
             rows={4}
             className="w-full p-3 sm:p-4 bg-slate-50 border border-slate-200 rounded-lg text-sm sm:text-base leading-relaxed text-slate-800 font-medium placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-hidden transition-all resize-y"
           />
@@ -265,11 +243,12 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
               id="btn-camera-ocr"
               type="button"
               onClick={onOpenImageOcr}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-semibold text-slate-700 bg-white hover:bg-slate-100 border border-slate-200 transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold text-white bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 border border-blue-500 shadow-md shadow-blue-500/20 transition-all active:scale-[.98]"
               title="Chụp ảnh sổ tay / Phiếu viết tay"
             >
-              <Camera className="w-4 h-4 text-blue-600" />
+              <Camera className="w-4 h-4" />
               <span>Quét ảnh sổ tay</span>
+              <span className="hidden sm:inline rounded-md bg-white/20 px-1.5 py-0.5 text-[10px]">Nhanh</span>
             </button>
           </div>
 
@@ -297,18 +276,15 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
         </div>
       </div>
 
-      {/* Helper Tip Card matching Professional Polish */}
-      <div className="bg-blue-50/80 border border-blue-100 rounded-xl p-4 flex items-center gap-4">
-        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center shrink-0 text-blue-600">
-          <Info className="w-5 h-5" />
-        </div>
-        <div>
-          <p className="text-xs sm:text-sm font-bold text-blue-900">Mẹo nhận diện nhanh</p>
-          <p className="text-xs text-blue-700 leading-relaxed mt-0.5">
-            Bạn có thể nhập giá trị kèm chữ <span className="font-semibold">'k'</span>, <span className="font-semibold">'nghìn'</span> hoặc số đầy đủ (ví dụ: <span className="font-semibold">Nối dây viền 200k</span>, <span className="font-semibold">10 áo x 35k</span>). Hệ thống tự động tách biệt tên công việc, số lượng và giá tiền.
-          </p>
-        </div>
-      </div>
+      <details className="rounded-xl border border-blue-100 bg-blue-50/80 p-3 text-blue-900">
+        <summary className="flex cursor-pointer list-none items-center gap-2 text-xs font-bold sm:text-sm">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 text-blue-600"><Info className="h-4 w-4" /></span>
+          Gợi ý nhận diện (bấm để xem)
+        </summary>
+        <p className="mt-2 pl-9 text-xs leading-relaxed text-blue-700">
+          Nhập tên công đoạn kèm số tiền; hệ thống sẽ tách công việc, số lượng và giá tiền để bạn kiểm tra trước khi lưu.
+        </p>
+      </details>
     </div>
   );
 };

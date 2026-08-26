@@ -135,7 +135,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
             Chưa có công đoạn nào được nhận dạng.
           </p>
           <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
-            Hãy nhập văn bản ở ô trên (Ví dụ: "Nối dây viền 200k nối thun 120k...") hoặc bấm vào các mẫu có sẵn.
+            Hãy nhập nội dung ở ô trên hoặc chọn một dịch vụ trong danh mục để thêm công đoạn.
           </p>
           <button
             type="button"
@@ -385,7 +385,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
                           onUpdateItem(item.id, { name: e.target.value })
                         }
                         className="w-full text-sm font-semibold text-slate-800 bg-transparent hover:bg-white focus:bg-white focus:ring-2 focus:ring-blue-400/50 rounded-md px-2 py-1 border border-transparent hover:border-slate-200 focus:border-blue-400 outline-hidden transition-all"
-                        placeholder="Tên công việc (ví dụ: Nối dây viền)"
+                        placeholder="Tên công việc"
                       />
                     </td>
 

@@ -4,6 +4,7 @@ import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { get, put } from "@vercel/blob";
 import dotenv from "dotenv";
+import { createHmac, timingSafeEqual } from "crypto";
 
 dotenv.config();
 
@@ -196,6 +197,134 @@ app.get("/api/health", (_req, res) => {
     hasApiKey: Boolean(process.env.GEMINI_API_KEY),
     time: new Date().toISOString(),
   });
+});
+
+type AppLoginAccount = { email: string; password: string };
+
+const AUTH_COOKIE_NAME = 'sotaymayva_session';
+const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
+
+function normalizeEmail(value: unknown): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function getLoginAccounts(): AppLoginAccount[] {
+  const fromEnvironmentFields = [1, 2, 3].map((index) => ({
+    email: normalizeEmail(process.env[`APP_LOGIN_EMAIL_${index}`]),
+    password: process.env[`APP_LOGIN_PASSWORD_${index}`] || '',
+  }));
+
+  const raw = process.env.APP_LOGIN_ACCOUNTS?.trim();
+  let fromJson: AppLoginAccount[] = [];
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      const entries = Array.isArray(parsed)
+        ? parsed.map((entry) => [entry?.email, entry?.password])
+        : Object.entries(parsed || {});
+      fromJson = entries.map(([email, password]) => ({
+        email: normalizeEmail(email),
+        password: typeof password === 'string' ? password : '',
+      }));
+    } catch {
+      fromJson = [];
+    }
+  }
+
+  const validAccounts = [...fromEnvironmentFields, ...fromJson]
+    .filter((account) => /^\S+@\S+\.\S+$/.test(account.email) && account.password.length > 0);
+  return Array.from(new Map(validAccounts.map((account) => [account.email, account])).values());
+}
+function getSessionSecret(): string {
+  return process.env.APP_SESSION_SECRET || '';
+}
+
+function isAppAuthConfigured(): boolean {
+  return getLoginAccounts().length > 0 && getSessionSecret().length >= 32;
+}
+
+function secureEqual(left: string, right: string): boolean {
+  const leftBytes = Buffer.from(left);
+  const rightBytes = Buffer.from(right);
+  return leftBytes.length === rightBytes.length && timingSafeEqual(leftBytes, rightBytes);
+}
+
+function signSession(payload: string): string {
+  return createHmac('sha256', getSessionSecret()).update(payload).digest('base64url');
+}
+
+function createSessionToken(email: string): string {
+  const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + SESSION_DURATION_MS })).toString('base64url');
+  return `${payload}.${signSession(payload)}`;
+}
+
+function readCookie(req: express.Request, name: string): string | null {
+  const rawCookies = req.headers.cookie || '';
+  const prefix = `${name}=`;
+  const item = rawCookies.split(';').map((cookie) => cookie.trim()).find((cookie) => cookie.startsWith(prefix));
+  return item ? decodeURIComponent(item.slice(prefix.length)) : null;
+}
+
+function getSessionEmail(req: express.Request): string | null {
+  if (!isAppAuthConfigured()) return null;
+  const token = readCookie(req, AUTH_COOKIE_NAME);
+  if (!token) return null;
+  const [payload, signature, extra] = token.split('.');
+  if (!payload || !signature || extra || !secureEqual(signature, signSession(payload))) return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    const email = normalizeEmail(decoded?.email);
+    const isKnownAccount = getLoginAccounts().some((account) => account.email === email);
+    return isKnownAccount && Number(decoded?.exp) > Date.now() ? email : null;
+  } catch {
+    return null;
+  }
+}
+
+function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: 'lax' as const,
+    secure: process.env.VERCEL === '1' || process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: SESSION_DURATION_MS,
+  };
+}
+
+app.get('/api/auth/session', (req, res) => {
+  const authConfigured = isAppAuthConfigured();
+  const email = authConfigured ? getSessionEmail(req) : null;
+  res.json({ authenticated: Boolean(email), email: email || undefined, authConfigured });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  if (!isAppAuthConfigured()) {
+    return res.status(503).json({ error: 'Đăng nhập chưa được cấu hình trên máy chủ.' });
+  }
+  const email = normalizeEmail(req.body?.email);
+  const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const account = getLoginAccounts().find((entry) => entry.email === email);
+  if (!account || !secureEqual(password, account.password)) {
+    return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng.' });
+  }
+  res.cookie(AUTH_COOKIE_NAME, createSessionToken(email), sessionCookieOptions());
+  return res.json({ authenticated: true, email });
+});
+
+app.post('/api/auth/logout', (_req, res) => {
+  res.clearCookie(AUTH_COOKIE_NAME, { httpOnly: true, sameSite: 'lax', path: '/' });
+  return res.json({ authenticated: false });
+});
+
+app.use('/api', (req, res, next) => {
+  if (req.originalUrl.startsWith('/api/cron/daily-backup')) return next();
+  if (!isAppAuthConfigured()) {
+    return res.status(503).json({ error: 'Đăng nhập ứng dụng chưa được cấu hình.' });
+  }
+  if (!getSessionEmail(req)) {
+    return res.status(401).json({ error: 'Vui lòng đăng nhập để sử dụng tính năng này.' });
+  }
+  return next();
 });
 
 // API: AI Smart Parser for Garment / Tailoring / Piecework tasks
@@ -395,7 +524,7 @@ app.post("/api/ai/parse-audio", async (req, res) => {
 
     const cleanBase64 = audioBase64.replace(/^data:audio\/[a-zA-Z0-9]+;base64,/, "");
 
-    const prompt = `Hãy nghe đoạn ghi âm giọng nói tiếng Việt này về việc tính tiền công may / tính chi phí may mặc (ví dụ: "Nối dây viền 200k nối thun 120k...").
+    const prompt = `Hãy nghe đoạn ghi âm giọng nói tiếng Việt này về việc tính tiền công may / tính chi phí may mặc (ví dụ: "Cắt gấu 30k, sửa khóa 50k").
 Hãy chuyển văn bản giọng nói và bóc tách từng công đoạn, số lượng, đơn giá (200k = 200000, 120k = 120000) và thành tiền.`;
 
     const { response } = await generateContentWithFallback(ai, {
@@ -555,12 +684,13 @@ async function recordEmailStatus(sentDate: string): Promise<void> {
   });
 }
 
-function getBackupRecipient(): string {
-  const recipient = process.env.BACKUP_TARGET_EMAIL?.trim();
-  if (!recipient || !/^\S+@\S+\.\S+$/.test(recipient)) {
+function getBackupRecipients(): string[] {
+  const rawRecipients = process.env.BACKUP_TARGET_EMAILS?.trim() || process.env.BACKUP_TARGET_EMAIL?.trim() || '';
+  const recipients = Array.from(new Set(rawRecipients.split(/[;,]/).map((email) => email.trim()).filter(Boolean)));
+  if (recipients.length === 0 || recipients.some((email) => !/^\S+@\S+\.\S+$/.test(email))) {
     throw new Error("Chưa cấu hình email nhận bản sao lưu hợp lệ.");
   }
-  return recipient;
+  return recipients;
 }
 
 function getSmtpConfig() {
@@ -574,7 +704,7 @@ function getSmtpConfig() {
 }
 
 async function sendBackupEmail(payload: BackupPayload, isManual: boolean): Promise<void> {
-  const recipient = getBackupRecipient();
+  const recipients = getBackupRecipients();
   const smtp = getSmtpConfig();
   const formattedRevenue = new Intl.NumberFormat("vi-VN", {
     style: "currency",
@@ -620,7 +750,7 @@ async function sendBackupEmail(payload: BackupPayload, isManual: boolean): Promi
   });
   await transporter.sendMail({
     from: process.env.SMTP_FROM || `"Sổ May & Sửa Đồ" <${smtp.user}>`,
-    to: recipient,
+    to: recipients,
     subject: `[SAO LƯU TIỆM MAY] ${payload.backupDate} (${payload.totalOrders} đơn - ${formattedRevenue})`,
     html: emailHtml,
     attachments: [{

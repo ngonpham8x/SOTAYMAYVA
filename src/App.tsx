@@ -14,6 +14,7 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { ImageOcrModal } from './components/ImageOcrModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
 import { ShopSettingsModal } from './components/ShopSettingsModal';
+import { DashboardStats } from './components/DashboardStats';
 import { BackupRecoveryModal } from './components/BackupRecoveryModal';
 import { ParsedItem, OrderRecord, ShopSettings, OrderCategory } from './types';
 import { parseSewingText, calculateTotals, formatVND } from './utils/textParser';
@@ -25,7 +26,7 @@ import {
 } from './utils/backupVault';
 import { Check, BarChart3 } from 'lucide-react';
 
-const INITIAL_TEXT = 'Nối dây viền 200k nối thun 120k. May cổ lé 120k. May lai 100k';
+const INITIAL_TEXT = '';
 
 const DEFAULT_SETTINGS: ShopSettings = {
   shopName: 'TIỆM MAY & SỬA ĐỒ NGUYỄN THỊ NGỌC',
@@ -43,115 +44,11 @@ const DEFAULT_SETTINGS: ShopSettings = {
   showQrOnReceipt: true,
 };
 
-// Generate sample orders distributed across today, this week, and this month
-const getInitialSampleOrders = (): OrderRecord[] => {
-  const today = new Date();
-  const dStr = (offsetDays: number) => {
-    const d = new Date(today.getTime() - offsetDays * 24 * 60 * 60 * 1000);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  };
-
-  return [
-    {
-      id: 'sample-1',
-      title: 'Sửa đồ thuê & cắt gấu jean',
-      workerName: 'Nguyễn Thị Ngọc',
-      customerName: 'Chị Mai (Thuê đồ cưới)',
-      customerPhone: '0909123456',
-      date: dStr(0),
-      rawText: 'Chỉnh size đầm dạ hội thuê 60k. Cắt gấu quần jean 30k. Đơm nút 10k',
-      category: 'alteration',
-      items: [
-        { id: 's1-1', name: 'Chỉnh size đầm dạ hội thuê', quantity: 1, unit: 'bộ', unitPrice: 60000, amount: 60000, type: 'work' },
-        { id: 's1-2', name: 'Cắt gấu / Lên lai quần jean', quantity: 1, unit: 'cái', unitPrice: 30000, amount: 30000, type: 'work' },
-        { id: 's1-3', name: 'Đơm nút / Cúc áo', quantity: 1, unit: 'lần', unitPrice: 10000, amount: 10000, type: 'work' },
-      ],
-      subtotal: 100000,
-      advanceAmount: 0,
-      discountAmount: 0,
-      finalAmount: 100000,
-      status: 'completed',
-      createdAt: Date.now() - 3600000,
-      updatedAt: Date.now() - 3600000,
-    },
-    {
-      id: 'sample-2',
-      title: 'Gia công áo thun & may cổ lé',
-      workerName: 'Nguyễn Thị Ngọc',
-      customerName: 'Xưởng may Tân Bình',
-      customerPhone: '0912345678',
-      date: dStr(1),
-      rawText: 'Nối dây viền 200k. Nối thun 120k. May cổ lé 120k. May lai 100k',
-      category: 'sewing',
-      items: [
-        { id: 's2-1', name: 'Nối dây viền', quantity: 1, unit: 'công', unitPrice: 200000, amount: 200000, type: 'work' },
-        { id: 's2-2', name: 'Nối thun', quantity: 1, unit: 'công', unitPrice: 120000, amount: 120000, type: 'work' },
-        { id: 's2-3', name: 'May cổ lé', quantity: 1, unit: 'công', unitPrice: 120000, amount: 120000, type: 'work' },
-        { id: 's2-4', name: 'May lai', quantity: 1, unit: 'công', unitPrice: 100000, amount: 100000, type: 'work' },
-      ],
-      subtotal: 540000,
-      advanceAmount: 0,
-      discountAmount: 0,
-      finalAmount: 540000,
-      status: 'completed',
-      createdAt: Date.now() - 86400000,
-      updatedAt: Date.now() - 86400000,
-    },
-    {
-      id: 'sample-3',
-      title: 'Sửa áo dài cưới thuê & bóp eo',
-      workerName: 'Thợ Hương',
-      customerName: 'Studio Lan Anh',
-      customerPhone: '0987654321',
-      date: dStr(3),
-      rawText: 'Sửa áo dài cưới thuê 70k. Bóp eo chỉnh dáng đầm 45k. Thay dây kéo giọt nước 35k',
-      category: 'alteration',
-      items: [
-        { id: 's3-1', name: 'Sửa áo dài cưới / hội nghị thuê', quantity: 1, unit: 'bộ', unitPrice: 70000, amount: 70000, type: 'work' },
-        { id: 's3-2', name: 'Bóp eo / Chỉnh dáng đầm', quantity: 1, unit: 'cái', unitPrice: 45000, amount: 45000, type: 'work' },
-        { id: 's3-3', name: 'Thay dây kéo giọt nước đầm', quantity: 1, unit: 'cái', unitPrice: 35000, amount: 35000, type: 'work' },
-      ],
-      subtotal: 150000,
-      advanceAmount: 0,
-      discountAmount: 10000,
-      finalAmount: 140000,
-      status: 'completed',
-      createdAt: Date.now() - 3 * 86400000,
-      updatedAt: Date.now() - 3 * 86400000,
-    },
-    {
-      id: 'sample-4',
-      title: 'Phục hồi trang phục biểu diễn thuê',
-      workerName: 'Nguyễn Thị Ngọc',
-      customerName: 'Đoàn Ca Múa',
-      customerPhone: '0903333444',
-      date: dStr(6),
-      rawText: 'Giặt hấp & phục hồi đồ thuê 50k. Đính kết cườm 40k. Nới size trang phục 50k',
-      category: 'alteration',
-      items: [
-        { id: 's4-1', name: 'Giặt hấp & Phục hồi đồ thuê', quantity: 1, unit: 'bộ', unitPrice: 50000, amount: 50000, type: 'work' },
-        { id: 's4-2', name: 'Đính kết cườm / Hạt đá trang phục', quantity: 1, unit: 'lần', unitPrice: 40000, amount: 40000, type: 'work' },
-        { id: 's4-3', name: 'Nới size trang phục biểu diễn thuê', quantity: 1, unit: 'bộ', unitPrice: 50000, amount: 50000, type: 'work' },
-      ],
-      subtotal: 140000,
-      advanceAmount: 0,
-      discountAmount: 0,
-      finalAmount: 140000,
-      status: 'completed',
-      createdAt: Date.now() - 6 * 86400000,
-      updatedAt: Date.now() - 6 * 86400000,
-    },
-  ];
-};
-
 export default function App() {
   // Input text & Order metadata state
   const [text, setText] = useState<string>(INITIAL_TEXT);
-  const [title, setTitle] = useState<string>('Nối dây viền & may cổ lé');
-  const [customerName, setCustomerName] = useState<string>('Khách lẻ');
+  const [title, setTitle] = useState<string>('');
+  const [customerName, setCustomerName] = useState<string>('');
   const [customerPhone, setCustomerPhone] = useState<string>('');
   const [workerName, setWorkerName] = useState<string>('Nguyễn Thị Ngọc');
   const [category, setCategory] = useState<OrderCategory>('alteration');
@@ -182,13 +79,15 @@ export default function App() {
       const stored = localStorage.getItem('sewing_saved_orders');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter((order) => !String(order?.id || '').startsWith('sample-'));
+          if (cleaned.length !== parsed.length) localStorage.setItem('sewing_saved_orders', JSON.stringify(cleaned));
+          return cleaned;
+        }
       }
-      const initial = getInitialSampleOrders();
-      localStorage.setItem('sewing_saved_orders', JSON.stringify(initial));
-      return initial;
+      return [];
     } catch {
-      return getInitialSampleOrders();
+      return [];
     }
   });
 
@@ -590,6 +489,11 @@ export default function App() {
         </div>
 
         {/* Input & Catalog Section */}
+        <DashboardStats
+          orders={savedOrders}
+          onOpenStatistics={() => setIsStatisticsOpen(true)}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
           {/* Left Column: Natural Text Input + Image OCR */}
           <div className="lg:col-span-7 flex flex-col">
