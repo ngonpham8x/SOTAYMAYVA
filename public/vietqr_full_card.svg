@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 620" width="450" height="620" style="background:#ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+  <defs>
+    <style>
+      .bold-text { font-weight: 800; }
+      .medium-text { font-weight: 600; }
+      .normal-text { font-weight: 500; }
+    </style>
+  </defs>
+
+  <!-- Background Card -->
+  <rect width="450" height="620" rx="24" fill="#ffffff" stroke="#e2e8f0" stroke-width="1.5" />
+
+  <!-- Top Logo: VietQR -->
+  <g transform="translate(155, 30)">
+    <text x="0" y="32" font-size="28" font-weight="900" fill="#E11D48">V</text>
+    <text x="20" y="32" font-size="28" font-weight="900" fill="#0F172A">iet</text>
+    <text x="58" y="32" font-size="28" font-weight="900" fill="#00428A">QR</text>
+  </g>
+
+  <!-- QR Code Container -->
+  <g transform="translate(85, 90)">
+    <rect width="280" height="280" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" />
+    <g transform="translate(15, 15) scale(0.758)">
+      <path fill="#ffffff" d="M0 0h39v39H0z"/><path stroke="#000000" d="M1 1.5h7m2 0h4m3 0h2m5 0h3m4 0h7M1 2.5h1m5 0h1m3 0h1m1 0h1m4 0h2m1 0h2m2 0h1m1 0h2m2 0h1m5 0h1M1 3.5h1m1 0h3m1 0h1m1 0h1m2 0h1m1 0h1m2 0h3m2 0h2m3 0h1m3 0h1m1 0h3m1 0h1M1 4.5h1m1 0h3m1 0h1m1 0h1m2 0h1m4 0h3m2 0h1m3 0h3m2 0h1m1 0h3m1 0h1M1 5.5h1m1 0h3m1 0h1m1 0h1m2 0h1m2 0h4m1 0h3m2 0h1m1 0h1m3 0h1m1 0h3m1 0h1M1 6.5h1m5 0h1m1 0h1m1 0h1m1 0h1m2 0h1m1 0h1m3 0h1m5 0h1m2 0h1m5 0h1M1 7.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M9 8.5h1m2 0h1m1 0h1m2 0h5m1 0h1m3 0h2M1 9.5h1m1 0h5m2 0h3m1 0h1m1 0h2m4 0h4m2 0h1m2 0h5M2 10.5h1m5 0h1m1 0h2m1 0h2m1 0h1m2 0h1m1 0h1m7 0h1m4 0h1M4 11.5h2m1 0h1m1 0h1m5 0h3m1 0h2m1 0h2m1 0h1m5 0h1m3 0h1m1 0h1M2 12.5h5m2 0h5m2 0h1m2 0h4m6 0h3m1 0h2m1 0h1M1 13.5h1m1 0h1m1 0h3m1 0h2m2 0h1m1 0h8m2 0h2m1 0h1m2 0h2m1 0h1m2 0h1M1 14.5h2m1 0h2m2 0h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h2m1 0h1m1 0h3m2 0h2m3 0h1M3 15.5h1m3 0h4m3 0h3m2 0h2m1 0h2m1 0h4m2 0h1m2 0h1m1 0h1M1 16.5h2m1 0h1m3 0h1m1 0h1m1 0h3m1 0h2m2 0h1m2 0h1m1 0h1m2 0h1m5 0h1m2 0h1M3 17.5h3m1 0h1m1 0h2m3 0h1m4 0h3m2 0h1m3 0h1m2 0h2m1 0h1m2 0h1M2 18.5h1m3 0h1m1 0h1m1 0h1m3 0h1m1 0h3m3 0h2m1 0h1m2 0h1m1 0h4m3 0h1M1 19.5h2m1 0h2m1 0h1m1 0h4m2 0h1m3 0h1m1 0h1m2 0h2m2 0h2m1 0h2m1 0h1m2 0h1M1 20.5h1m2 0h3m3 0h1m1 0h4m1 0h1m9 0h3m1 0h4m2 0h1M2 21.5h1m3 0h2m1 0h1m3 0h3m3 0h1m3 0h2m1 0h1m3 0h5m2 0h1M1 22.5h2m1 0h1m1 0h1m4 0h1m1 0h3m1 0h2m2 0h1m6 0h1m2 0h1m1 0h3m1 0h1M2 23.5h1m1 0h1m2 0h3m2 0h1m2 0h1m2 0h1m1 0h3m1 0h2m2 0h1m1 0h2m2 0h2M2 24.5h1m5 0h1m7 0h4m1 0h3m2 0h1m1 0h1m1 0h1m1 0h1m1 0h1M1 25.5h1m1 0h1m1 0h1m1 0h3m2 0h2m1 0h3m2 0h1m1 0h1m3 0h5m1 0h1m2 0h3M1 26.5h3m4 0h2m4 0h1m1 0h1m1 0h2m1 0h1m1 0h4m1 0h1m1 0h3m2 0h1m1 0h1M1 27.5h1m2 0h2m1 0h1m1 0h1m1 0h1m4 0h2m1 0h2m1 0h1m2 0h1m1 0h1m6 0h1m2 0h1M1 28.5h1m3 0h1m3 0h1m1 0h1m2 0h3m1 0h5m1 0h1m4 0h1m3 0h5M1 29.5h1m1 0h1m3 0h1m2 0h1m2 0h1m1 0h2m1 0h1m1 0h3m1 0h2m2 0h6m1 0h3M9 30.5h2m1 0h1m1 0h1m2 0h1m1 0h1m3 0h1m1 0h1m1 0h3m3 0h1m2 0h2M1 31.5h7m2 0h3m1 0h3m2 0h1m5 0h3m1 0h1m1 0h1m1 0h2M1 32.5h1m5 0h1m1 0h2m1 0h3m1 0h1m3 0h1m1 0h1m3 0h4m3 0h1m1 0h1m1 0h1M1 33.5h1m1 0h3m1 0h1m1 0h6m1 0h1m2 0h1m2 0h1m1 0h4m1 0h5m2 0h1M1 34.5h1m1 0h3m1 0h1m1 0h3m1 0h2m1 0h2m4 0h4m2 0h1m2 0h2m1 0h1m2 0h1M1 35.5h1m1 0h3m1 0h1m1 0h2m1 0h1m1 0h1m7 0h2m1 0h1m2 0h1m1 0h2m2 0h1m2 0h1M1 36.5h1m5 0h1m2 0h1m2 0h2m2 0h1m1 0h1m1 0h1m2 0h1m2 0h3m1 0h1m3 0h3M1 37.5h7m1 0h3m7 0h2m1 0h1m2 0h5m3 0h1m1 0h1m1 0h1"/>
+    </g>
+  </g>
+
+  <!-- Bank Logos Row -->
+  <g transform="translate(85, 400)">
+    <!-- EXIMBANK -->
+    <text x="0" y="22" font-size="18" font-weight="900" fill="#005696" letter-spacing="1">EXIMBANK</text>
+    <circle cx="105" cy="12" r="5" fill="#00A3E0" />
+    <circle cx="105" cy="12" r="2.5" fill="#ffffff" />
+
+    <!-- napas 247 -->
+    <text x="175" y="22" font-size="18" font-style="italic" font-weight="900" fill="#005CA9">napas</text>
+    <text x="235" y="22" font-size="20" font-style="italic" font-weight="900" fill="#7BB731">247</text>
+  </g>
+
+  <!-- Account Name -->
+  <text x="225" y="465" text-anchor="middle" font-size="19" font-weight="900" fill="#0F172A" letter-spacing="0.5">NGUYEN THI NGOC</text>
+
+  <!-- Account Number -->
+  <text x="225" y="505" text-anchor="middle" font-size="17" font-weight="700" fill="#1E293B">Số tài khoản: <tspan fill="#047857" font-family="monospace" font-size="19" font-weight="800">100192186</tspan></text>
+
+  <!-- Bank Details -->
+  <text x="225" y="545" text-anchor="middle" font-size="15" font-weight="500" fill="#475569">Ngân hàng Eximbank - Eximbank Bảo Lộc</text>
+
+  <rect x="180" y="575" width="90" height="4" rx="2" fill="#E2E8F0" />
+</svg>

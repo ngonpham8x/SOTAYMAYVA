@@ -1,0 +1,7 @@
+{
+  "name": "Sổ May & Sửa Quần Áo Thuê Thông Minh",
+  "description": "Ứng dụng tự động nhận dạng, bóc tách công đoạn may mặc, tính tiền sửa quần áo thuê, ghi sổ theo ngày và thống kê doanh thu theo ngày, tuần, tháng, năm cho chủ tiệm Nguyễn Thị Ngọc.",
+  "requestFramePermissions": ["camera", "microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

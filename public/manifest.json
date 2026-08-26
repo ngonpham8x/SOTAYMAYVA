@@ -1,0 +1,19 @@
+{
+  "short_name": "Sổ May Ngọc",
+  "name": "Sổ May & Sửa Quần Áo Thuê Thông Minh",
+  "description": "Ứng dụng tự động bóc tách công đoạn may mặc, tính tiền sửa quần áo thuê, in phiếu tính tiền VietQR và quản lý doanh thu.",
+  "icons": [
+    {
+      "src": "/logo.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512 any",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "lang": "vi"
+}
