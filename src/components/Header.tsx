@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Settings, BarChart3, Phone, User, ShieldCheck } from 'lucide-react';
+import { History, Settings, BarChart3, Phone, User } from 'lucide-react';
 import appLogo from '../assets/images/tailor_shop_logo_1787732514689.jpg';
 import { LogoutControl } from './AuthGate';
 
@@ -10,7 +10,8 @@ interface HeaderProps {
   onOpenHistory: () => void;
   onOpenStatistics: () => void;
   onOpenSettings: () => void;
-  onOpenBackup?: () => void;
+
+
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,7 +21,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenHistory,
   onOpenStatistics,
   onOpenSettings,
-  onOpenBackup,
+
+
 }) => {
   return (
     <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
@@ -88,19 +90,8 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Backup & Recovery Button */}
-            {onOpenBackup && (
-              <button
-                id="btn-open-backup"
-                type="button"
-                onClick={onOpenBackup}
-                className="h-9 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors shadow-2xs active:scale-95"
-                title="Khôi phục dữ liệu, hoàn tác xóa & sao lưu email bí mật"
-              >
-                <ShieldCheck className="w-4 h-4 text-indigo-600" />
-                <span className="hidden md:inline">Khôi phục</span>
-              </button>
-            )}
+
+
 
             {/* Settings Button */}
             <button
@@ -111,9 +102,8 @@ export const Header: React.FC<HeaderProps> = ({
               title="Cài đặt thông tin tiệm may & tài khoản QR"
             >
               <Settings className="w-4 h-4" />
-            <LogoutControl />
-
             </button>
+            <LogoutControl />
           </div>
         </div>
       </div>

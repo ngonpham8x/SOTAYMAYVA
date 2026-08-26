@@ -78,6 +78,9 @@ export const AlterationCatalog: React.FC<AlterationCatalogProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'all' | 'pants' | 'dress' | 'rental' | 'accessories'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [customName, setCustomName] = useState('');
+  const [customPrice, setCustomPrice] = useState('');
+  const [customUnit, setCustomUnit] = useState('cái');
 
   const filteredServices = ALTERATION_SERVICES.filter((srv) => {
     const matchesTab = activeTab === 'all' || srv.category === activeTab;
@@ -107,6 +110,24 @@ export const AlterationCatalog: React.FC<AlterationCatalogProps> = ({
     onDirectAddItem(newItem);
   };
 
+  const handleAddCustomService = (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = customName.trim();
+    const price = Number(customPrice.replace(/[^\d]/g, ''));
+    if (!name || !Number.isFinite(price) || price <= 0) return;
+
+    onDirectAddItem({
+      id: `custom-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      name,
+      quantity: 1,
+      unit: customUnit.trim() || 'cái',
+      unitPrice: price,
+      amount: price,
+      type: 'work',
+    });
+    setCustomName('');
+    setCustomPrice('');
+  };
   return (
     <div className="bg-white border border-slate-200 rounded-xl shadow-xs overflow-hidden transition-all">
       {/* Accordion Bar */}
@@ -153,6 +174,41 @@ export const AlterationCatalog: React.FC<AlterationCatalogProps> = ({
 
       {isOpen && (
         <div className="p-4 space-y-3 bg-slate-50/40">
+          <form onSubmit={handleAddCustomService} className="rounded-xl border border-blue-100 bg-blue-50/70 p-3">
+            <div className="mb-2 flex items-center gap-2 text-xs font-extrabold text-blue-900">
+              <Plus className="h-4 w-4" /> Thêm nội dung & giá tiền riêng
+            </div>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-12">
+              <input
+                type="text"
+                value={customName}
+                onChange={(event) => setCustomName(event.target.value)}
+                placeholder="Tên công việc / dịch vụ"
+                className="sm:col-span-6 rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <input
+                type="number"
+                min="0"
+                inputMode="numeric"
+                value={customPrice}
+                onChange={(event) => setCustomPrice(event.target.value)}
+                placeholder="Đơn giá (đ)"
+                className="sm:col-span-3 rounded-lg border border-blue-100 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+              <div className="flex gap-2 sm:col-span-3">
+                <input
+                  type="text"
+                  value={customUnit}
+                  onChange={(event) => setCustomUnit(event.target.value)}
+                  placeholder="Đơn vị"
+                  className="min-w-0 flex-1 rounded-lg border border-blue-100 bg-white px-2 py-2 text-sm text-slate-800 outline-none focus:border-blue-500"
+                />
+                <button type="submit" disabled={!customName.trim() || !customPrice.trim()} className="inline-flex shrink-0 items-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40" title="Thêm trực tiếp vào bảng tính">
+                  <Plus className="h-4 w-4" /> Thêm
+                </button>
+              </div>
+            </div>
+          </form>
           {/* Filter Tabs & Search */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
             {/* Category Tabs */}

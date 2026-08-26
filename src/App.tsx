@@ -24,7 +24,7 @@ import {
   checkAndRunDailyAutoBackup,
   queuePrivateBackup,
 } from './utils/backupVault';
-import { Check, BarChart3 } from 'lucide-react';
+import { Check, Plus, ShieldCheck } from 'lucide-react';
 
 const INITIAL_TEXT = '';
 
@@ -72,6 +72,7 @@ export default function App() {
   const [isStatisticsOpen, setIsStatisticsOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
 
   // Saved Orders in localStorage
   const [savedOrders, setSavedOrders] = useState<OrderRecord[]>(() => {
@@ -447,7 +448,6 @@ export default function App() {
         onOpenHistory={() => setIsHistoryOpen(true)}
         onOpenStatistics={() => setIsStatisticsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenBackup={() => setIsBackupOpen(true)}
       />
 
       {/* Toast Notification */}
@@ -464,93 +464,97 @@ export default function App() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
-        {/* Top Quick Actions Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs sm:text-sm font-extrabold text-slate-800">
-              Hệ Thống Quản Lý Tiệm May & Sửa Đồ
-            </span>
-            <span className="text-xs text-slate-400 hidden md:inline">|</span>
-            <span className="text-xs text-slate-500 hidden md:inline">
-              Chụp ảnh sổ tay, tự động bóc tách và cộng doanh thu 1-chạm
-            </span>
-          </div>
+        <DashboardStats orders={savedOrders} onOpenStatistics={() => setIsStatisticsOpen(true)} />
 
-          <div className="flex items-center gap-2">
+        {!isWorkspaceOpen ? (
+          <section className="rounded-3xl border border-dashed border-blue-200 bg-white p-5 shadow-xs sm:p-8">
             <button
-              onClick={() => setIsStatisticsOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-all"
+              id="btn-open-workspace"
+              type="button"
+              onClick={() => setIsWorkspaceOpen(true)}
+              className="group flex w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-600 to-cyan-600 px-5 py-9 text-center text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
             >
-              <BarChart3 className="w-4 h-4 text-blue-600" />
-              <span>Xem Thống Kê (Ngày/Tuần/Tháng/Năm)</span>
+              <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-white/35 bg-white/15 transition group-hover:scale-110">
+                <Plus className="h-11 w-11" strokeWidth={2.5} />
+              </span>
+              <span className="mt-4 text-lg font-extrabold">Tạo phiếu mới</span>
+              <span className="mt-1 text-sm text-blue-100">Bấm dấu cộng để nhập nội dung, quét ảnh sổ tay hoặc thêm dịch vụ.</span>
             </button>
-          </div>
-        </div>
+          </section>
+        ) : (
+          <>
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
+              <div>
+                <h2 className="text-sm font-extrabold text-slate-900">Nhập phiếu mới</h2>
+                <p className="mt-0.5 text-xs text-slate-600">Thêm nội dung, quét ảnh sổ tay hoặc chọn dịch vụ và đơn giá.</p>
+              </div>
+              <button type="button" onClick={() => setIsWorkspaceOpen(false)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100">
+                Ẩn phần nhập
+              </button>
+            </section>
 
-        {/* Input & Catalog Section */}
-        <DashboardStats
-          orders={savedOrders}
-          onOpenStatistics={() => setIsStatisticsOpen(true)}
-        />
+            <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12">
+              <div className="flex flex-col lg:col-span-7">
+                <TextInputArea
+                  text={text}
+                  onChangeText={handleTextChange}
+                  onAiParse={handleAiParse}
+                  onOpenImageOcr={() => setIsImageOcrOpen(true)}
+                  isAiLoading={isAiLoading}
+                />
+              </div>
+              <div className="flex flex-col lg:col-span-5">
+                <AlterationCatalog onAppendText={handleAppendText} onDirectAddItem={handleDirectAddItem} />
+              </div>
+            </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6">
-          {/* Left Column: Natural Text Input + Image OCR */}
-          <div className="lg:col-span-7 flex flex-col">
-            <TextInputArea
-              text={text}
-              onChangeText={handleTextChange}
-              onAiParse={handleAiParse}
-              onOpenImageOcr={() => setIsImageOcrOpen(true)}
-              isAiLoading={isAiLoading}
-            />
-          </div>
+            <div className="w-full">
+              <ItemsTable
+                items={items}
+                onUpdateItem={handleUpdateItem}
+                onDeleteItem={handleDeleteItem}
+                onAddItem={handleAddItem}
+                onDuplicateItem={handleDuplicateItem}
+              />
+            </div>
 
-          {/* Right Column: Alteration Quick Catalog */}
-          <div className="lg:col-span-5 flex flex-col">
-            <AlterationCatalog
-              onAppendText={handleAppendText}
-              onDirectAddItem={handleDirectAddItem}
-            />
-          </div>
-        </div>
+            <div className="w-full">
+              <SummaryCard
+                items={items}
+                title={title}
+                onChangeTitle={setTitle}
+                workerName={workerName}
+                onChangeWorkerName={setWorkerName}
+                customerName={customerName}
+                onChangeCustomerName={setCustomerName}
+                customerPhone={customerPhone}
+                onChangeCustomerPhone={setCustomerPhone}
+                date={orderDate}
+                onChangeDate={setOrderDate}
+                category={category}
+                onChangeCategory={setCategory}
+                status={status}
+                onChangeStatus={setStatus}
+                shopSettings={shopSettings}
+                onSaveOrder={handleSaveOrder}
+                onCompleteAndSaveOrder={handleCompleteAndSaveOrder}
+                onOpenReceiptModal={() => setIsReceiptModalOpen(true)}
+                hasSaved={hasSaved}
+              />
+            </div>
 
-        {/* Parsed Items Interactive Table */}
-        <div className="w-full">
-          <ItemsTable
-            items={items}
-            onUpdateItem={handleUpdateItem}
-            onDeleteItem={handleDeleteItem}
-            onAddItem={handleAddItem}
-            onDuplicateItem={handleDuplicateItem}
-          />
-        </div>
-
-        {/* Summary Card with Totals, Customer, Worker, 1-Click Complete & Save */}
-        <div className="w-full">
-          <SummaryCard
-            items={items}
-            title={title}
-            onChangeTitle={setTitle}
-            workerName={workerName}
-            onChangeWorkerName={setWorkerName}
-            customerName={customerName}
-            onChangeCustomerName={setCustomerName}
-            customerPhone={customerPhone}
-            onChangeCustomerPhone={setCustomerPhone}
-            date={orderDate}
-            onChangeDate={setOrderDate}
-            category={category}
-            onChangeCategory={setCategory}
-            status={status}
-            onChangeStatus={setStatus}
-            shopSettings={shopSettings}
-            onSaveOrder={handleSaveOrder}
-            onCompleteAndSaveOrder={handleCompleteAndSaveOrder}
-            onOpenReceiptModal={() => setIsReceiptModalOpen(true)}
-            hasSaved={hasSaved}
-          />
-        </div>
+            <div className="flex justify-center pt-2">
+              <button
+                id="btn-open-backup-bottom"
+                type="button"
+                onClick={() => setIsBackupOpen(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-xs font-bold text-indigo-700 shadow-xs transition hover:bg-indigo-50"
+              >
+                <ShieldCheck className="h-4 w-4" /> Khôi phục & sao lưu riêng tư
+              </button>
+            </div>
+          </>
+        )}
       </main>
 
       {/* Modals */}

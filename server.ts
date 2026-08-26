@@ -208,10 +208,15 @@ function normalizeEmail(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
 }
 
+function normalizeConfiguredPassword(value: unknown): string {
+  const password = typeof value === 'string' ? value.trim() : '';
+  return (/^(['"]).*\1$/.test(password) ? password.slice(1, -1) : password);
+}
+
 function getLoginAccounts(): AppLoginAccount[] {
   const fromEnvironmentFields = [1, 2, 3].map((index) => ({
     email: normalizeEmail(process.env[`APP_LOGIN_EMAIL_${index}`]),
-    password: process.env[`APP_LOGIN_PASSWORD_${index}`] || '',
+    password: normalizeConfiguredPassword(process.env[`APP_LOGIN_PASSWORD_${index}`]),
   }));
 
   const raw = process.env.APP_LOGIN_ACCOUNTS?.trim();
@@ -224,14 +229,14 @@ function getLoginAccounts(): AppLoginAccount[] {
         : Object.entries(parsed || {});
       fromJson = entries.map(([email, password]) => ({
         email: normalizeEmail(email),
-        password: typeof password === 'string' ? password : '',
+        password: normalizeConfiguredPassword(password),
       }));
     } catch {
       fromJson = [];
     }
   }
 
-  const validAccounts = [...fromEnvironmentFields, ...fromJson]
+  const validAccounts = [...fromJson, ...fromEnvironmentFields]
     .filter((account) => /^\S+@\S+\.\S+$/.test(account.email) && account.password.length > 0);
   return Array.from(new Map(validAccounts.map((account) => [account.email, account])).values());
 }
