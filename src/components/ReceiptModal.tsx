@@ -281,17 +281,17 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   <div className="mt-2.5 flex items-center gap-2 w-full">
                     <a
                       href={OFFICIAL_VIETQR_CARD_URL}
-                      download="VietQR_Eximbank_NguyenThiNgoc_100192186.svg"
+                      download="VietQR_Eximbank_NguyenThiNgoc_100192186.jpg"
                       className="flex-1 py-1.5 px-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1"
                     >
                       <Download className="w-3.5 h-3.5" /> Tải thẻ QR gốc
                     </a>
                     <a
                       href={OFFICIAL_QR_PNG_URL}
-                      download="QR_Eximbank_100192186.png"
+                      download="QR_Eximbank_100192186.jpg"
                       className="flex-1 py-1.5 px-2 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1"
                     >
-                      <Download className="w-3.5 h-3.5" /> Tải ảnh QR PNG
+                      <Download className="w-3.5 h-3.5" /> Tải ảnh QR
                     </a>
                   </div>
                 </div>

@@ -90,8 +90,8 @@ export function buildVietQrEmvCoPayload(options: {
 export const OFFICIAL_EXIMBANK_EMVCO =
   '00020101021138530010A0000007270123000697043101091001921860208QRIBFTTA53037045802VN5915NGUYEN THI NGOC6007BAO LOC630436C7';
 
-export const OFFICIAL_VIETQR_CARD_URL = '/vietqr_full_card.svg';
-export const OFFICIAL_QR_PNG_URL = '/qr_eximbank.png';
+export const OFFICIAL_VIETQR_CARD_URL = '/qr-ngan-hang.jpg';
+export const OFFICIAL_QR_PNG_URL = '/qr-ngan-hang.jpg';
 
 /**
  * Returns the public VietQR image API URL
