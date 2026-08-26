@@ -4,15 +4,15 @@
   "description": "Ứng dụng tự động bóc tách công đoạn may mặc, tính tiền sửa quần áo thuê, in phiếu tính tiền VietQR và quản lý doanh thu.",
   "icons": [
     {
-      "src": "/logo.svg",
-      "type": "image/svg+xml",
-      "sizes": "192x192 512x512 any",
+      "src": "/somaythongminh.jpg",
+      "type": "image/jpeg",
+      "sizes": "1024x1024",
       "purpose": "any maskable"
     }
   ],
   "start_url": "/",
   "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "theme_color": "#064d85",
   "display": "standalone",
   "orientation": "portrait-primary",
   "lang": "vi"
