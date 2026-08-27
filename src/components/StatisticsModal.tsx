@@ -23,6 +23,8 @@ import { exportStatisticsToExcel } from '../utils/excelExporter';
 interface StatisticsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Render the same report directly on the home page instead of in a dialog. */
+  embedded?: boolean;
   orders: OrderRecord[];
   shopSettings: ShopSettings;
   onToggleOrderStatus?: (id: string, newStatus: 'pending' | 'completed' | 'paid') => void;
@@ -53,6 +55,7 @@ function formatDateString(d: Date): string {
 export const StatisticsModal: React.FC<StatisticsModalProps> = ({
   isOpen,
   onClose,
+  embedded = false,
   orders,
   shopSettings,
   onToggleOrderStatus,
@@ -262,13 +265,20 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
     window.print();
   };
 
-  if (!isOpen) return null;
+  if (!embedded && !isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-      <div className="bg-white rounded-2xl max-w-5xl w-full shadow-2xl overflow-hidden border border-slate-200 flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200">
+    <div
+      id={embedded ? 'home-statistics' : undefined}
+      className={embedded
+        ? 'overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs'
+        : 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-xs'}
+    >
+      <div className={embedded
+        ? 'w-full bg-white'
+        : 'flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200'}>
         {/* Modal Top Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
+        {!embedded && <div className="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between bg-slate-900 text-white">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
               <TrendingUp className="w-5 h-5" />
@@ -294,7 +304,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
           >
             <X className="w-5 h-5" />
           </button>
-        </div>
+        </div>}
 
         {/* Filter Control Bar */}
         <div className="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
@@ -427,7 +437,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
         </div>
 
         {/* Modal Scrollable Body */}
-        <div className="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1 bg-slate-50/50">
+        <div className={`p-4 sm:p-6 space-y-6 bg-slate-50/50 ${embedded ? '' : 'overflow-y-auto flex-1'}`}>
           {/* Key Metric KPI Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
             {/* KPI 1: Doanh Thu */}
@@ -681,7 +691,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3">
+        {!embedded && <div className="p-4 border-t border-slate-200 bg-white flex flex-wrap items-center justify-between gap-3">
           <div className="text-xs text-slate-500">
             Chủ tiệm: <span className="font-bold text-slate-800">{shopSettings.ownerName}</span> ({shopSettings.phone})
           </div>
@@ -705,7 +715,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
               <span>Tải file Excel (.xlsx)</span>
             </button>
           </div>
-        </div>
+        </div>}
       </div>
     </div>
   );
