@@ -5,13 +5,15 @@ import { get, put } from "@vercel/blob";
 import dotenv from "dotenv";
 import { createHmac, timingSafeEqual } from "crypto";
 
-dotenv.config();
+if (process.env.VERCEL !== "1") {
+  dotenv.config({ quiet: true });
+}
 
 export const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+app.disable("x-powered-by");
+app.use(express.json({ limit: "8mb" }));
 
 // Lazy init Gemini client
 function getGeminiClient(): GoogleGenAI | null {
@@ -110,7 +112,7 @@ function safeParseJson(rawText: string | undefined): any {
   try {
     return JSON.parse(cleaned);
   } catch (e) {
-    console.warn("JSON parse warning:", e, "Raw text:", cleaned.slice(0, 100));
+    console.warn("JSON parse warning:", e instanceof Error ? e.message : "invalid model response");
     return {};
   }
 }
@@ -503,7 +505,7 @@ Nhiệm vụ:
     const parsedData = safeParseJson(response.text);
     return res.json({ success: true, data: parsedData });
   } catch (error: any) {
-    console.error("Error parsing image with Gemini:", error);
+    console.error("Image OCR error:", error?.message || "unknown error");
     return res.status(500).json({
       error:
         error.message?.includes("503") || error.message?.includes("UNAVAILABLE")
@@ -574,7 +576,7 @@ Hãy chuyển văn bản giọng nói và bóc tách từng công đoạn, số 
     const parsedData = safeParseJson(response.text);
     return res.json({ success: true, data: parsedData });
   } catch (error: any) {
-    console.error("Error parsing audio with Gemini:", error);
+    console.error("Audio OCR error:", error?.message || "unknown error");
     return res.status(500).json({
       error:
         error.message?.includes("503") || error.message?.includes("UNAVAILABLE")
