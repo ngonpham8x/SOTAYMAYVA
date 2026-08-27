@@ -465,17 +465,17 @@ export default function App() {
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
         {!isWorkspaceOpen ? (
-          <section className="rounded-3xl border border-dashed border-blue-200 bg-white p-5 shadow-xs sm:p-8">
+          <section className="rounded-2xl border border-dashed border-blue-200 bg-white p-3 shadow-xs sm:p-4">
             <button
               id="btn-open-workspace"
               type="button"
               onClick={() => setIsWorkspaceOpen(true)}
-              className="group flex w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 via-blue-600 to-cyan-600 px-5 py-9 text-center text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0"
+              className="group flex w-full flex-col items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-blue-600 to-cyan-600 px-4 py-5 text-center text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:py-6"
             >
-              <span className="flex h-20 w-20 items-center justify-center rounded-full border-2 border-white/35 bg-white/15 transition group-hover:scale-110">
-                <Plus className="h-11 w-11" strokeWidth={2.5} />
+              <span className="flex h-12 w-12 items-center sm:h-14 sm:w-14 justify-center rounded-full border-2 border-white/35 bg-white/15 transition group-hover:scale-110">
+                <Plus className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />
               </span>
-              <span className="mt-4 text-lg font-extrabold">Tạo phiếu mới</span>
+              <span className="mt-2.5 text-base font-extrabold">Tạo phiếu mới</span>
               <span className="mt-1 text-sm text-blue-100">Bấm dấu cộng để nhập nội dung, quét ảnh sổ tay hoặc thêm dịch vụ.</span>
             </button>
           </section>
