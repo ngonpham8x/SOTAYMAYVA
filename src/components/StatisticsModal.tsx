@@ -60,7 +60,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
   shopSettings,
   onToggleOrderStatus,
 }) => {
-  const [timeframe, setTimeframe] = useState<StatsTimeframe>('month');
+  const [timeframe, setTimeframe] = useState<StatsTimeframe>('day');
   const [referenceDate, setReferenceDate] = useState<string>(() =>
     formatDateString(new Date())
   );

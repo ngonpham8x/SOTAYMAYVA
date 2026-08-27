@@ -464,15 +464,6 @@ export default function App() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
-        <StatisticsModal
-          isOpen
-          embedded
-          onClose={() => undefined}
-          orders={savedOrders}
-          shopSettings={shopSettings}
-          onToggleOrderStatus={handleToggleOrderStatus}
-        />
-
         {!isWorkspaceOpen ? (
           <section className="rounded-3xl border border-dashed border-blue-200 bg-white p-5 shadow-xs sm:p-8">
             <button
@@ -562,6 +553,16 @@ export default function App() {
             </div>
           </>
         )}
+
+        <StatisticsModal
+          isOpen
+          embedded
+          onClose={() => undefined}
+          orders={savedOrders}
+          shopSettings={shopSettings}
+          onToggleOrderStatus={handleToggleOrderStatus}
+        />
+
       </main>
 
       {/* Modals */}
