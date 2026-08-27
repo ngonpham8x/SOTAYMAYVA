@@ -10,6 +10,7 @@ import { ItemsTable } from './components/ItemsTable';
 import { SummaryCard } from './components/SummaryCard';
 import { AlterationCatalog } from './components/AlterationCatalog';
 import { StatisticsModal } from './components/StatisticsModal';
+import { DashboardStats } from './components/DashboardStats';
 import { ReceiptModal } from './components/ReceiptModal';
 import { ImageOcrModal } from './components/ImageOcrModal';
 import { OrderHistoryModal } from './components/OrderHistoryModal';
@@ -69,6 +70,7 @@ export default function App() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isImageOcrOpen, setIsImageOcrOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isStatisticsOpen, setIsStatisticsOpen] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
@@ -446,7 +448,7 @@ export default function App() {
         ownerPhone={shopSettings.phone || '0339.272.127'}
         savedCount={savedOrders.length}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        onOpenStatistics={() => setIsStatisticsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
@@ -464,6 +466,12 @@ export default function App() {
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
+        <DashboardStats
+          orders={savedOrders}
+          onCreateOrder={() => setIsWorkspaceOpen(true)}
+          onOpenHistory={() => setIsHistoryOpen(true)}
+          onOpenStatistics={() => setIsStatisticsOpen(true)}
+        />
         {!isWorkspaceOpen ? (
           <section className="rounded-2xl border border-dashed border-blue-200 bg-white p-3 shadow-xs sm:p-4">
             <button
@@ -554,14 +562,6 @@ export default function App() {
           </>
         )}
 
-        <StatisticsModal
-          isOpen
-          embedded
-          onClose={() => undefined}
-          orders={savedOrders}
-          shopSettings={shopSettings}
-          onToggleOrderStatus={handleToggleOrderStatus}
-        />
 
       </main>
 
@@ -599,6 +599,13 @@ export default function App() {
       />
 
 
+      <StatisticsModal
+        isOpen={isStatisticsOpen}
+        onClose={() => setIsStatisticsOpen(false)}
+        orders={savedOrders}
+        shopSettings={shopSettings}
+        onToggleOrderStatus={handleToggleOrderStatus}
+      />
       <ShopSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

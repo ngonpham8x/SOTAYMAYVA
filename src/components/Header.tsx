@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
 
 }) => {
   return (
-    <header className="h-16 bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <header className="h-16 border-b border-slate-200/80 bg-white/90 sticky top-0 z-30 shadow-xs backdrop-blur">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-full">
         <div className="flex items-center justify-between h-full gap-3">
           {/* Logo & Brand Info */}
@@ -66,11 +66,11 @@ export const Header: React.FC<HeaderProps> = ({
               id="btn-open-statistics"
               type="button"
               onClick={onOpenStatistics}
-              className="h-9 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-2xs active:scale-95"
+              className="h-9 w-9 sm:w-auto inline-flex items-center justify-center gap-1.5 px-0 sm:px-3 rounded-lg text-xs sm:text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-2xs active:scale-95"
               title="Xem báo cáo & thống kê thu nhập"
             >
               <BarChart3 className="w-4 h-4 text-blue-600" />
-              <span className="hidden xs:inline">Thống kê</span>
+              <span className="hidden md:inline">Thống kê</span>
             </button>
 
             {/* History Button */}
@@ -78,11 +78,11 @@ export const Header: React.FC<HeaderProps> = ({
               id="btn-open-history"
               type="button"
               onClick={onOpenHistory}
-              className="h-9 inline-flex items-center gap-1.5 px-2.5 sm:px-3 rounded-lg text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shadow-2xs active:scale-95"
+              className="h-9 w-9 sm:w-auto inline-flex items-center justify-center gap-1.5 px-0 sm:px-3 rounded-lg text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 border border-slate-200 transition-colors shadow-2xs active:scale-95"
               title="Xem sổ lưu trữ đơn hàng đã lập"
             >
               <History className="w-4 h-4 text-slate-600" />
-              <span>Sổ tay</span>
+              <span className="hidden md:inline">Sổ tay</span>
               {savedCount > 0 && (
                 <span className="px-1.5 py-0.5 bg-blue-600 text-white rounded-full text-[10px] font-mono font-bold leading-none">
                   {savedCount}
