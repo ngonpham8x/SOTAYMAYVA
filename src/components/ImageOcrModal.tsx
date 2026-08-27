@@ -63,7 +63,8 @@ export const ImageOcrModal: React.FC<ImageOcrModalProps> = ({
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -162,17 +163,25 @@ export const ImageOcrModal: React.FC<ImageOcrModalProps> = ({
         <div className="p-5 sm:p-6 space-y-4">
           <input
             type="file"
-            ref={fileInputRef}
+            ref={cameraInputRef}
+            onClick={(event) => { event.currentTarget.value = ''; }}
             onChange={handleFileChange}
             accept="image/*"
             capture="environment"
             className="hidden"
           />
+          <input
+            type="file"
+            ref={libraryInputRef}
+            onClick={(event) => { event.currentTarget.value = ''; }}
+            onChange={handleFileChange}
+            accept="image/*"
+            className="hidden"
+          />
 
           {!selectedImage ? (
             <div
-              onClick={() => !isLoading && fileInputRef.current?.click()}
-              className="border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/40 hover:bg-blue-50/80 rounded-2xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-3 group"
+              className="border-2 border-dashed border-blue-300 bg-blue-50/40 rounded-2xl p-8 text-center transition-all flex flex-col items-center justify-center gap-3 group"
             >
               <div className="w-14 h-14 rounded-2xl bg-white shadow-md border border-blue-100 flex items-center justify-center text-blue-600 group-hover:scale-105 transition-transform">
                 <Upload className="w-7 h-7" />
@@ -185,9 +194,29 @@ export const ImageOcrModal: React.FC<ImageOcrModalProps> = ({
                   Chụp sổ ghi chép, phiếu giao nhận, hóa đơn viết tay ("May 1: 200k, May 2: 300k...")
                 </p>
               </div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-xs font-bold rounded-lg shadow-xs">
+              <div className="hidden">
                 <Camera className="w-3.5 h-3.5" />
                 <span>Chụp / Chọn ảnh ngay</span>
+              </div>
+              <div className="grid w-full max-w-sm grid-cols-1 gap-2 sm:grid-cols-2">
+                <button
+                  id="btn-camera-ocr-capture"
+                  type="button"
+                  onClick={() => !isLoading && cameraInputRef.current?.click()}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-bold text-white shadow-sm transition-colors hover:bg-blue-700"
+                >
+                  <Camera className="h-4 w-4" />
+                  Chụp ảnh mới
+                </button>
+                <button
+                  id="btn-camera-ocr-library"
+                  type="button"
+                  onClick={() => !isLoading && libraryInputRef.current?.click()}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2.5 text-xs font-bold text-blue-700 shadow-sm transition-colors hover:bg-blue-50"
+                >
+                  <Upload className="h-4 w-4" />
+                  Chọn từ thư viện
+                </button>
               </div>
             </div>
           ) : (
@@ -214,7 +243,7 @@ export const ImageOcrModal: React.FC<ImageOcrModalProps> = ({
                 <div className="flex items-center justify-between text-xs pt-1">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() => libraryInputRef.current?.click()}
                     className="text-blue-700 font-semibold hover:underline inline-flex items-center gap-1"
                   >
                     <RefreshCw className="w-3.5 h-3.5" />
@@ -235,7 +264,7 @@ export const ImageOcrModal: React.FC<ImageOcrModalProps> = ({
                 <p>{error}</p>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => libraryInputRef.current?.click()}
                   className="mt-1 inline-flex items-center gap-1 font-bold text-rose-800 underline"
                 >
                   Thử chụp lại ảnh góc thẳng, đủ ánh sáng
