@@ -92,7 +92,17 @@ export const ImageOcrModal: React.FC<ImageOcrModalProps> = ({
         }),
       });
 
-      const resData = await response.json();
+      const responseText = await response.text();
+      let resData: any;
+      try {
+        resData = JSON.parse(responseText);
+      } catch {
+        if (response.status === 504) {
+          throw new Error('Nhận dạng mất quá lâu. Vui lòng thử lại với ảnh chỉ chứa sổ tay hoặc phiếu may.');
+        }
+        throw new Error('Máy chủ nhận dạng trả về phản hồi không hợp lệ. Vui lòng thử lại.');
+      }
+
       if (!response.ok || !resData.success) {
         throw new Error(resData.error || 'Không thể nhận dạng chữ trong ảnh.');
       }

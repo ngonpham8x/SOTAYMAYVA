@@ -29,9 +29,9 @@ function getGeminiClient(): GoogleGenAI | null {
 
 // Fallback models in priority order according to supported @google/genai models
 const MODEL_CANDIDATES = [
-  "gemini-3.7-flash",
   "gemini-3.1-flash-lite",
-  "gemini-flash-latest",
+  "gemini-3.7-flash",
+  "gemini-2.5-flash-lite",
 ];
 
 // Helper delay for exponential backoff
