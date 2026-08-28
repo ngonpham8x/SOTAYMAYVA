@@ -25,7 +25,7 @@ import {
   checkAndRunDailyAutoBackup,
   queuePrivateBackup,
 } from './utils/backupVault';
-import { Check, Plus, ShieldCheck } from 'lucide-react';
+import { Check, ShieldCheck } from 'lucide-react';
 
 const INITIAL_TEXT = '';
 
@@ -70,7 +70,6 @@ export default function App() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isImageOcrOpen, setIsImageOcrOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isStatisticsOpen, setIsStatisticsOpen] = useState(false);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
@@ -448,7 +447,7 @@ export default function App() {
         ownerPhone={shopSettings.phone || '0339.272.127'}
         savedCount={savedOrders.length}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenStatistics={() => setIsStatisticsOpen(true)}
+        onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 
@@ -470,24 +469,9 @@ export default function App() {
           orders={savedOrders}
           onCreateOrder={() => setIsWorkspaceOpen(true)}
           onOpenHistory={() => setIsHistoryOpen(true)}
-          onOpenStatistics={() => setIsStatisticsOpen(true)}
+          onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
-        {!isWorkspaceOpen ? (
-          <section className="rounded-2xl border border-dashed border-blue-200 bg-white p-3 shadow-xs sm:p-4">
-            <button
-              id="btn-open-workspace"
-              type="button"
-              onClick={() => setIsWorkspaceOpen(true)}
-              className="group flex w-full flex-col items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 via-blue-600 to-cyan-600 px-4 py-5 text-center text-white shadow-lg shadow-blue-600/20 transition hover:-translate-y-0.5 hover:shadow-xl active:translate-y-0 sm:py-6"
-            >
-              <span className="flex h-12 w-12 items-center sm:h-14 sm:w-14 justify-center rounded-full border-2 border-white/35 bg-white/15 transition group-hover:scale-110">
-                <Plus className="h-7 w-7 sm:h-8 sm:w-8" strokeWidth={2.5} />
-              </span>
-              <span className="mt-2.5 text-base font-extrabold">Tạo phiếu mới</span>
-              <span className="mt-1 text-sm text-blue-100">Bấm dấu cộng để nhập nội dung, quét ảnh sổ tay hoặc thêm dịch vụ.</span>
-            </button>
-          </section>
-        ) : (
+        {isWorkspaceOpen && (
           <>
             <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
               <div>
@@ -563,6 +547,15 @@ export default function App() {
         )}
 
 
+        <StatisticsModal
+          isOpen
+          embedded
+          onClose={() => undefined}
+          orders={savedOrders}
+          shopSettings={shopSettings}
+          onToggleOrderStatus={handleToggleOrderStatus}
+        />
+
       </main>
 
       {/* Modals */}
@@ -599,13 +592,6 @@ export default function App() {
       />
 
 
-      <StatisticsModal
-        isOpen={isStatisticsOpen}
-        onClose={() => setIsStatisticsOpen(false)}
-        orders={savedOrders}
-        shopSettings={shopSettings}
-        onToggleOrderStatus={handleToggleOrderStatus}
-      />
       <ShopSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
