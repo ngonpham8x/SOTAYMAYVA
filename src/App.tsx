@@ -170,6 +170,7 @@ export default function App() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeScreen, setActiveScreen] = useState<'dashboard' | 'entry'>('dashboard');
   const [isQuickAddVisible, setIsQuickAddVisible] = useState(true);
   const [quickAddOffset, setQuickAddOffset] = useState({ x: 0, y: 0 });
@@ -214,6 +215,7 @@ export default function App() {
   const draftInitializedRef = useRef(false);
   const draftHasLocalChangesRef = useRef(false);
   const draftSyncReadyRef = useRef(false);
+  const remoteSnapshotRefreshRef = useRef<() => Promise<void>>(async () => {});
 
   // Shop Settings in localStorage
   const [shopSettings, setShopSettings] = useState<ShopSettings>(() => {
@@ -378,6 +380,7 @@ export default function App() {
         queuePrivateBackup(mergedOrders, shopSettingsRef.current, draftRef.current, mergedDeletedOrderIds);
       }
     };
+    remoteSnapshotRefreshRef.current = applyRemoteSnapshot;
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== 'sewing_saved_orders' || !event.newValue) return;
       try {
@@ -392,20 +395,34 @@ export default function App() {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') void applyRemoteSnapshot();
     };
+    const handleOnline = () => void applyRemoteSnapshot();
     void applyRemoteSnapshot();
     const syncTimer = window.setInterval(() => void applyRemoteSnapshot(), 4_000);
     window.addEventListener('focus', handleVisibility);
+    window.addEventListener('online', handleOnline);
     window.addEventListener('storage', handleStorage);
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       disposed = true;
       window.clearInterval(syncTimer);
+      remoteSnapshotRefreshRef.current = async () => {};
       window.removeEventListener('focus', handleVisibility);
+      window.removeEventListener('online', handleOnline);
       window.removeEventListener('storage', handleStorage);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
+  const handleRefreshData = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await remoteSnapshotRefreshRef.current();
+      showToast('\u0110\u00e3 c\u1eadp nh\u1eadt d\u1eef li\u1ec7u m\u1edbi nh\u1ea5t.', 'info');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const resetOrderDraft = () => {
     setText('');
@@ -858,7 +875,8 @@ export default function App() {
         ownerPhone={shopSettings.phone || '0339.272.127'}
         savedCount={savedOrders.length}
         onOpenHistory={() => setIsHistoryOpen(true)}
-        onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        onRefresh={handleRefreshData}
+        isRefreshing={isRefreshing}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { History, Settings, BarChart3, Phone, User } from 'lucide-react';
+import { History, Settings, RefreshCw, Phone, User } from 'lucide-react';
 import appLogo from '../assets/images/tailor_shop_logo_1787732514689.jpg';
 import { LogoutControl } from './AuthGate';
 
@@ -8,7 +8,8 @@ interface HeaderProps {
   ownerPhone?: string;
   savedCount: number;
   onOpenHistory: () => void;
-  onOpenStatistics: () => void;
+  onRefresh: () => void;
+  isRefreshing: boolean;
   onOpenSettings: () => void;
 
 
@@ -19,7 +20,8 @@ export const Header: React.FC<HeaderProps> = ({
   ownerPhone = '0339.272.127',
   savedCount,
   onOpenHistory,
-  onOpenStatistics,
+  onRefresh,
+  isRefreshing,
   onOpenSettings,
 
 
@@ -61,18 +63,19 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Actions Bar - Equal Height & Professional Alignment */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-            {/* Statistics Button */}
+            {/* Refresh Button */}
             <button
-              id="btn-open-statistics"
+              id="btn-refresh-data"
               type="button"
-              onClick={onOpenStatistics}
-              className="h-9 w-9 sm:w-auto inline-flex items-center justify-center gap-1.5 px-0 sm:px-3 rounded-lg text-xs sm:text-sm font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-2xs active:scale-95"
-              title="Xem báo cáo & thống kê thu nhập"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              className="h-9 min-w-9 sm:w-auto inline-flex items-center justify-center gap-1.5 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-extrabold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 transition-colors shadow-2xs active:scale-95 disabled:cursor-wait disabled:opacity-70"
+              title="Lam moi du lieu moi nhat (F5)"
+              aria-label="Lam moi du lieu moi nhat"
             >
-              <BarChart3 className="w-4 h-4 text-blue-600" />
-              <span className="hidden md:inline">Thống kê</span>
+              <RefreshCw className={'w-4 h-4 text-blue-600' + (isRefreshing ? ' animate-spin' : '')} />
+              <span className="hidden sm:inline">{isRefreshing ? '...' : 'F5'}</span>
             </button>
-
             {/* History Button */}
             <button
               id="btn-open-history"
