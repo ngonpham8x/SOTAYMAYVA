@@ -16,6 +16,9 @@ import {
   Phone,
   Sparkles,
   ArrowUpRight,
+  Pencil,
+  RefreshCw,
+  Trash2,
 } from 'lucide-react';
 import { OrderRecord, ShopSettings, StatsTimeframe } from '../types';
 import { formatVND } from '../utils/textParser';
@@ -29,6 +32,8 @@ interface StatisticsModalProps {
   orders: OrderRecord[];
   shopSettings: ShopSettings;
   onToggleOrderStatus?: (id: string, newStatus: 'pending' | 'completed' | 'paid') => void;
+  onEditOrder?: (order: OrderRecord) => void;
+  onDeleteOrder?: (id: string) => void;
 }
 
 /**
@@ -60,6 +65,8 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
   orders,
   shopSettings,
   onToggleOrderStatus,
+  onEditOrder,
+  onDeleteOrder,
 }) => {
   const [timeframe, setTimeframe] = useState<StatsTimeframe>('day');
   const [referenceDate, setReferenceDate] = useState<string>(() =>
@@ -617,7 +624,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
                       <th className="py-2.5 px-3 text-right">Số món</th>
                       <th className="py-2.5 px-3 text-right">Thực thu</th>
                       <th className="py-2.5 px-3 text-center">Trạng thái</th>
-                      {onToggleOrderStatus && (
+                      {(onToggleOrderStatus || onEditOrder || onDeleteOrder) && (
                         <th className="py-2.5 px-3 text-center">Hành động</th>
                       )}
                     </tr>
@@ -671,24 +678,25 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
                               </span>
                             )}
                           </td>
-                          {onToggleOrderStatus && (
+                          {(onToggleOrderStatus || onEditOrder || onDeleteOrder) && (
                             <td className="py-2.5 px-3 text-center">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  onToggleOrderStatus(
-                                    ord.id,
-                                    isCompleted ? 'pending' : 'completed'
-                                  )
-                                }
-                                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg transition-all ${
-                                  isCompleted
-                                    ? 'text-slate-500 hover:bg-slate-200'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
-                                }`}
-                              >
-                                {isCompleted ? 'Chuyển về Đang sửa' : '✓ Bấm Hoàn Thành'}
-                              </button>
+                              <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                {onEditOrder && (
+                                  <button type="button" onClick={() => onEditOrder(ord)} className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 transition hover:bg-blue-100" title="Mở phiếu để sửa nội dung và tiền">
+                                    <Pencil className="h-3 w-3" /> Sửa
+                                  </button>
+                                )}
+                                {onToggleOrderStatus && (
+                                  <button type="button" onClick={() => onToggleOrderStatus(ord.id, isCompleted ? 'pending' : 'completed')} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2 py-1 text-[11px] font-bold text-emerald-700 transition hover:bg-emerald-100" title={isCompleted ? 'Chuyển đơn về trạng thái đang sửa' : 'Đánh dấu hoàn thành và cộng vào doanh thu'}>
+                                    <RefreshCw className="h-3 w-3" /> Cập nhật
+                                  </button>
+                                )}
+                                {onDeleteOrder && (
+                                  <button type="button" onClick={() => onDeleteOrder(ord.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700 transition hover:bg-rose-100" title="Xóa đơn vào vùng khôi phục">
+                                    <Trash2 className="h-3 w-3" /> Xóa
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           )}
                         </tr>

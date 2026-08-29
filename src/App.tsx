@@ -81,13 +81,14 @@ export default function App() {
   );
 
   // Parsed Items
-  const [items, setItems] = useState<ParsedItem[]>(() => parseSewingText(INITIAL_TEXT));
+  const [items, setItems] = useState<ParsedItem[]>([]);
 
   // AI loading status & notifications
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type?: 'success' | 'info' } | null>(null);
   const [hasSaved, setHasSaved] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<OrderRecord | null>(null);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     if (completedOrder && items.length > 0) setCompletedOrder(null);
@@ -236,7 +237,7 @@ export default function App() {
 
 
   const resetOrderDraft = () => {
-    setText(INITIAL_TEXT);
+    setText('');
     setItems([]);
     setTitle('');
     setCustomerName('');
@@ -246,6 +247,7 @@ export default function App() {
     setStatus('pending');
     setOrderDate(new Date().toISOString().split('T')[0]);
     setHasSaved(false);
+    setEditingOrderId(null);
     setCompletedOrder(null);
   };
 
@@ -455,8 +457,12 @@ export default function App() {
     }
 
     const calc = calculateTotals(items);
+    const now = Date.now();
+    const existingOrder = editingOrderId
+      ? savedOrders.find((order) => order.id === editingOrderId)
+      : undefined;
     const newRecord: OrderRecord = {
-      id: `order-${Date.now()}`,
+      id: existingOrder?.id || `order-${now}`,
       title: title || 'Chi tiết công may / sửa đồ',
       workerName: workerName || shopSettings.ownerName,
       customerName: customerName || 'Khách lẻ',
@@ -470,11 +476,13 @@ export default function App() {
       discountAmount: calc.discounts,
       finalAmount: calc.total,
       status: targetStatus,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      createdAt: existingOrder?.createdAt || now,
+      updatedAt: now,
     };
 
-    const updated = [newRecord, ...savedOrders];
+    const updated = existingOrder
+      ? savedOrders.map((order) => (order.id === existingOrder.id ? newRecord : order))
+      : [newRecord, ...savedOrders];
     setSavedOrders(updated);
     try {
       localStorage.setItem('sewing_saved_orders', JSON.stringify(updated));
@@ -483,7 +491,7 @@ export default function App() {
     }
     queuePrivateBackup(updated, shopSettings);
     setHasSaved(true);
-    return { record: newRecord, total: calc.total };
+    return { record: newRecord, total: calc.total, wasUpdated: Boolean(existingOrder) };
   };
 
   // Standard Save
@@ -500,8 +508,17 @@ export default function App() {
     const res = saveOrderToStorage('completed');
     if (res) {
       setCompletedOrder(res.record);
-      setText(INITIAL_TEXT);
+      setText('');
       setItems([]);
+      setTitle('');
+      setCustomerName('');
+      setCustomerPhone('');
+      setWorkerName(shopSettingsRef.current.ownerName || 'Nguyễn Thị Ngọc');
+      setCategory('alteration');
+      setStatus('pending');
+      setOrderDate(new Date().toISOString().split('T')[0]);
+      setHasSaved(false);
+      setEditingOrderId(null);
       showToast(
         `✓ ĐÃ HOÀN THÀNH & TỰ ĐỘNG CỘNG ${formatVND(res.total)} VÀO DOANH THU!`,
         'success'
@@ -542,6 +559,7 @@ export default function App() {
     setText('');
     setItems(order.items);
     setHasSaved(true);
+    setEditingOrderId(order.id);
     setCompletedOrder(null);
     setIsHistoryOpen(false);
     setActiveScreen('entry');
@@ -551,6 +569,7 @@ export default function App() {
 
   // Delete an order from history with trash bin & auto-snapshot protection
   const handleDeleteOrder = (id: string) => {
+    if (!window.confirm('Xóa đơn này? Đơn sẽ được đưa vào vùng khôi phục an toàn.')) return;
     const targetOrder = savedOrders.find((o) => o.id === id);
     if (targetOrder) {
       // Save to recycle trash bin for instant 1-click undo
@@ -563,6 +582,7 @@ export default function App() {
 
     const updated = savedOrders.filter((o) => o.id !== id);
     setSavedOrders(updated);
+    if (editingOrderId === id) setEditingOrderId(null);
     try {
       localStorage.setItem('sewing_saved_orders', JSON.stringify(updated));
     } catch (e) {
@@ -656,6 +676,8 @@ export default function App() {
             orders={savedOrders}
             shopSettings={shopSettings}
             onToggleOrderStatus={handleToggleOrderStatus}
+            onEditOrder={handleLoadOrder}
+            onDeleteOrder={handleDeleteOrder}
           />
         </main>
       )}
@@ -754,6 +776,7 @@ export default function App() {
 
             <div className="w-full">
               <ItemsTable
+                key={completedOrder ? 'completed' : 'draft'}
                 items={items}
                 onUpdateItem={handleUpdateItem}
                 onDeleteItem={handleDeleteItem}
