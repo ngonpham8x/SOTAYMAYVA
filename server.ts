@@ -593,6 +593,7 @@ const BACKUP_BLOB_PATH = "sotaymayva/latest-recovery-backup.json";
 const BACKUP_STATUS_BLOB_PATH = "sotaymayva/daily-email-status.json";
 const MAX_BACKUP_BYTES = 4 * 1024 * 1024;
 const MAX_BACKUP_ORDERS = 5_000;
+const MAX_BACKUP_TOMBSTONES = 5_000;
 
 type BackupPayload = {
   appName: string;
@@ -602,6 +603,7 @@ type BackupPayload = {
   totalRevenue: number;
   shopSettings?: Record<string, unknown>;
   draft?: Record<string, unknown>;
+  deletedOrderIds?: Record<string, number>;
   orders: Record<string, any>[];
 };
 
@@ -625,6 +627,24 @@ function escapeHtml(value: unknown): string {
     .replace(/'/g, "&#039;");
 }
 
+function normalizeDeletedOrderIds(value: unknown): Record<string, number> {
+  if (value === undefined) return {};
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Dau xoa don hang khong hop le.');
+  }
+  const entries = Object.entries(value as Record<string, unknown>);
+  if (entries.length > MAX_BACKUP_TOMBSTONES) {
+    throw new Error('Du lieu dong bo co qua nhieu dau xoa don hang.');
+  }
+  return entries.reduce<Record<string, number>>((result, [id, timestamp]) => {
+    const numericTimestamp = Number(timestamp);
+    if (id && Number.isFinite(numericTimestamp) && numericTimestamp > 0) {
+      result[id] = numericTimestamp;
+    }
+    return result;
+  }, {});
+}
+
 function createBackupPayload(body: any): BackupPayload {
   const orders = body?.orders;
   if (!Array.isArray(orders)) {
@@ -638,7 +658,7 @@ function createBackupPayload(body: any): BackupPayload {
   if (draft !== undefined && (!draft || typeof draft !== 'object' || Array.isArray(draft))) {
     throw new Error('Dữ liệu phiếu đang nhập không hợp lệ.');
   }
-
+  const deletedOrderIds = normalizeDeletedOrderIds(body?.deletedOrderIds);
   const totalRevenue = orders.reduce((sum: number, order: any) => {
     const amount = Number(order?.finalAmount);
     return sum + (Number.isFinite(amount) ? amount : 0);
@@ -652,6 +672,7 @@ function createBackupPayload(body: any): BackupPayload {
     totalRevenue,
     shopSettings: body?.shopSettings,
     draft: draft as Record<string, unknown> | undefined,
+    deletedOrderIds,
     orders,
   };
 
@@ -787,6 +808,7 @@ app.get("/api/backup/snapshot", async (_req, res) => {
       orders: payload.orders,
       shopSettings: payload.shopSettings,
       draft: payload.draft,
+      deletedOrderIds: payload.deletedOrderIds,
     });
   } catch (error: any) {
     console.error("Backup snapshot read error:", error);

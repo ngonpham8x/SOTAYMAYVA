@@ -229,11 +229,25 @@ export interface SharedOrderDraft {
   items: ParsedItem[];
 }
 
+export type DeletedOrderTombstones = Record<string, number>;
+
 export interface PrivateBackupSnapshot {
   timestamp: number;
   orders: OrderRecord[];
   shopSettings?: ShopSettings;
   draft?: SharedOrderDraft;
+  deletedOrderIds?: DeletedOrderTombstones;
+}
+
+function normalizeDeletedOrderTombstones(value: unknown): DeletedOrderTombstones {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return Object.entries(value as Record<string, unknown>).reduce<DeletedOrderTombstones>((result, [id, timestamp]) => {
+    const numericTimestamp = Number(timestamp);
+    if (id && Number.isFinite(numericTimestamp) && numericTimestamp > 0) {
+      result[id] = numericTimestamp;
+    }
+    return result;
+  }, {});
 }
 
 export type PrivateBackupFetchResult =
@@ -259,6 +273,7 @@ export async function fetchPrivateBackup(): Promise<PrivateBackupFetchResult> {
         draft: payload?.draft && typeof payload.draft === 'object' && !Array.isArray(payload.draft)
           ? payload.draft as SharedOrderDraft
           : undefined,
+        deletedOrderIds: normalizeDeletedOrderTombstones(payload?.deletedOrderIds),
       },
     };
   } catch (error) {
@@ -270,7 +285,8 @@ export async function fetchPrivateBackup(): Promise<PrivateBackupFetchResult> {
 export async function syncPrivateBackup(
   orders: OrderRecord[],
   settings?: ShopSettings,
-  draft?: SharedOrderDraft
+  draft?: SharedOrderDraft,
+  deletedOrderIds: DeletedOrderTombstones = {}
 ): Promise<boolean> {
   try {
     const response = await fetch('/api/backup/snapshot', {
@@ -278,7 +294,7 @@ export async function syncPrivateBackup(
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       cache: 'no-store',
-      body: JSON.stringify({ orders, shopSettings: settings, draft }),
+      body: JSON.stringify({ orders, shopSettings: settings, draft, deletedOrderIds }),
     });
     return response.ok;
   } catch (error) {
@@ -291,14 +307,15 @@ export async function syncPrivateBackup(
 export function queuePrivateBackup(
   orders: OrderRecord[],
   settings?: ShopSettings,
-  draft?: SharedOrderDraft
+  draft?: SharedOrderDraft,
+  deletedOrderIds: DeletedOrderTombstones = {}
 ): void {
   if (remoteBackupTimer !== undefined) {
     window.clearTimeout(remoteBackupTimer);
   }
   remoteBackupTimer = window.setTimeout(() => {
     remoteBackupTimer = undefined;
-    void syncPrivateBackup(orders, settings, draft);
+    void syncPrivateBackup(orders, settings, draft, deletedOrderIds);
   }, 350);
 }
 

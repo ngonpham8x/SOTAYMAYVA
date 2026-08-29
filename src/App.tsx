@@ -25,31 +25,85 @@ import {
   checkAndRunDailyAutoBackup,
   fetchPrivateBackup,
   queuePrivateBackup,
+  type DeletedOrderTombstones,
   type SharedOrderDraft,
 } from './utils/backupVault';
 import { ArrowLeft, Check, Eye, EyeOff, GripVertical, Plus, ShieldCheck } from 'lucide-react';
 
 const INITIAL_TEXT = '';
+const DELETED_ORDERS_STORAGE_KEY = 'sewing_deleted_order_tombstones_v1';
+const TOMBSTONE_RETENTION_MS = 45 * 24 * 60 * 60 * 1000;
 
-function mergeOrders(localOrders: OrderRecord[], remoteOrders: OrderRecord[]): OrderRecord[] {
+function orderTimestamp(order?: OrderRecord): number {
+  return Number(order?.updatedAt) || Number(order?.createdAt) || 0;
+}
+
+function normalizeDeletedOrderTombstones(value: unknown): DeletedOrderTombstones {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  const earliestTimestamp = Date.now() - TOMBSTONE_RETENTION_MS;
+  return Object.entries(value as Record<string, unknown>).reduce<DeletedOrderTombstones>((result, [id, timestamp]) => {
+    const numericTimestamp = Number(timestamp);
+    if (id && Number.isFinite(numericTimestamp) && numericTimestamp >= earliestTimestamp) {
+      result[id] = numericTimestamp;
+    }
+    return result;
+  }, {});
+}
+
+function loadDeletedOrderTombstones(): DeletedOrderTombstones {
+  try {
+    return normalizeDeletedOrderTombstones(JSON.parse(localStorage.getItem(DELETED_ORDERS_STORAGE_KEY) || '{}'));
+  } catch {
+    return {};
+  }
+}
+
+function persistDeletedOrderTombstones(tombstones: DeletedOrderTombstones): void {
+  try {
+    localStorage.setItem(DELETED_ORDERS_STORAGE_KEY, JSON.stringify(tombstones));
+  } catch (error) {
+    console.warn('Could not persist deleted-order sync markers:', error);
+  }
+}
+
+function mergeDeletedOrderTombstones(...sources: Array<DeletedOrderTombstones | undefined>): DeletedOrderTombstones {
+  const merged: DeletedOrderTombstones = {};
+  sources.forEach((source) => {
+    Object.entries(normalizeDeletedOrderTombstones(source)).forEach(([id, timestamp]) => {
+      merged[id] = Math.max(merged[id] || 0, timestamp);
+    });
+  });
+  return merged;
+}
+
+function mergeOrders(
+  localOrders: OrderRecord[],
+  remoteOrders: OrderRecord[],
+  deletedOrderIds: DeletedOrderTombstones
+): OrderRecord[] {
   const byId = new Map<string, OrderRecord>();
   [...localOrders, ...remoteOrders].forEach((order) => {
     const current = byId.get(order.id);
-    const currentUpdatedAt = Number(current?.updatedAt) || Number(current?.createdAt) || 0;
-    const orderUpdatedAt = Number(order.updatedAt) || Number(order.createdAt) || 0;
-    if (!current || orderUpdatedAt >= currentUpdatedAt) byId.set(order.id, order);
+    if (!current || orderTimestamp(order) >= orderTimestamp(current)) byId.set(order.id, order);
   });
-  return [...byId.values()].sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+  return [...byId.values()]
+    .filter((order) => orderTimestamp(order) > (deletedOrderIds[order.id] || 0))
+    .sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
 }
 
 function orderListsMatch(first: OrderRecord[], second: OrderRecord[]): boolean {
   if (first.length !== second.length) return false;
   return first.every((order, index) => {
     const compared = second[index];
-    return order.id === compared?.id &&
-      (Number(order.updatedAt) || Number(order.createdAt) || 0) ===
-      (Number(compared.updatedAt) || Number(compared.createdAt) || 0);
+    return order.id === compared?.id && orderTimestamp(order) === orderTimestamp(compared);
   });
+}
+
+function tombstonesMatch(first: DeletedOrderTombstones, second: DeletedOrderTombstones): boolean {
+  const firstEntries = Object.entries(first).sort(([left], [right]) => left.localeCompare(right));
+  const secondEntries = Object.entries(second).sort(([left], [right]) => left.localeCompare(right));
+  return firstEntries.length === secondEntries.length &&
+    firstEntries.every(([id, timestamp], index) => id === secondEntries[index]?.[0] && timestamp === secondEntries[index]?.[1]);
 }
 function sharedDraftSignature(draft: SharedOrderDraft): string {
   return JSON.stringify({
@@ -141,6 +195,7 @@ export default function App() {
     }
   });
   const savedOrdersRef = useRef(savedOrders);
+  const deletedOrderTombstonesRef = useRef<DeletedOrderTombstones>(loadDeletedOrderTombstones());
   const shopSettingsRef = useRef<ShopSettings>(DEFAULT_SETTINGS);
   const remoteSnapshotTimestampRef = useRef(0);
   const draftRef = useRef<SharedOrderDraft>({
@@ -214,7 +269,7 @@ export default function App() {
     draftSignatureRef.current = signature;
     draftHasLocalChangesRef.current = true;
     if (draftSyncReadyRef.current) {
-      queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current, nextDraft);
+      queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current, nextDraft, deletedOrderTombstonesRef.current);
     }
   }, [text, title, customerName, customerPhone, workerName, category, status, orderDate, items]);
   // Background daily automatic backup check on app startup
@@ -237,16 +292,34 @@ export default function App() {
       if (disposed || remoteResult.state === 'unavailable') return;
       if (remoteResult.state === 'missing') {
         draftSyncReadyRef.current = true;
-        if (savedOrdersRef.current.length > 0 || draftHasLocalChangesRef.current) {
-          queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current, draftRef.current);
+        if (
+          savedOrdersRef.current.length > 0 ||
+          draftHasLocalChangesRef.current ||
+          Object.keys(deletedOrderTombstonesRef.current).length > 0
+        ) {
+          queuePrivateBackup(
+            savedOrdersRef.current,
+            shopSettingsRef.current,
+            draftRef.current,
+            deletedOrderTombstonesRef.current
+          );
         }
         return;
       }
       const snapshot = remoteResult.snapshot;
       if (snapshot.timestamp <= remoteSnapshotTimestampRef.current) return;
       remoteSnapshotTimestampRef.current = snapshot.timestamp;
-      const mergedOrders = mergeOrders(savedOrdersRef.current, snapshot.orders);
+      const mergedDeletedOrderIds = mergeDeletedOrderTombstones(
+        deletedOrderTombstonesRef.current,
+        snapshot.deletedOrderIds
+      );
+      const mergedOrders = mergeOrders(savedOrdersRef.current, snapshot.orders, mergedDeletedOrderIds);
       const shouldPushMergedOrders = !orderListsMatch(snapshot.orders, mergedOrders);
+      const shouldPushMergedDeletes = !tombstonesMatch(snapshot.deletedOrderIds || {}, mergedDeletedOrderIds);
+      if (!tombstonesMatch(deletedOrderTombstonesRef.current, mergedDeletedOrderIds)) {
+        deletedOrderTombstonesRef.current = mergedDeletedOrderIds;
+        persistDeletedOrderTombstones(mergedDeletedOrderIds);
+      }
       if (!orderListsMatch(savedOrdersRef.current, mergedOrders)) {
         savedOrdersRef.current = mergedOrders;
         setSavedOrders(mergedOrders);
@@ -301,8 +374,8 @@ export default function App() {
         setCompletedOrder(null);
       }
       draftSyncReadyRef.current = true;
-      if (shouldPushMergedOrders || draftHasLocalChangesRef.current) {
-        queuePrivateBackup(mergedOrders, shopSettingsRef.current, draftRef.current);
+      if (shouldPushMergedOrders || shouldPushMergedDeletes || draftHasLocalChangesRef.current) {
+        queuePrivateBackup(mergedOrders, shopSettingsRef.current, draftRef.current, mergedDeletedOrderIds);
       }
     };
     const handleStorage = (event: StorageEvent) => {
@@ -588,7 +661,13 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(updated, shopSettings, draftRef.current);
+    if (deletedOrderTombstonesRef.current[newRecord.id]) {
+      const nextDeletedOrderIds = { ...deletedOrderTombstonesRef.current };
+      delete nextDeletedOrderIds[newRecord.id];
+      deletedOrderTombstonesRef.current = nextDeletedOrderIds;
+      persistDeletedOrderTombstones(nextDeletedOrderIds);
+    }
+    queuePrivateBackup(updated, shopSettings, draftRef.current, deletedOrderTombstonesRef.current);
     setHasSaved(true);
     return { record: newRecord, total: calc.total, wasUpdated: Boolean(existingOrder) };
   };
@@ -639,7 +718,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(updated, shopSettings, draftRef.current);
+    queuePrivateBackup(updated, shopSettings, draftRef.current, deletedOrderTombstonesRef.current);
     const target = updated.find((o) => o.id === id);
     if (newStatus === 'completed') {
       showToast(`✓ Đã đánh dấu hoàn thành & cộng ${formatVND(target?.finalAmount || 0)} vào thống kê!`);
@@ -679,10 +758,16 @@ export default function App() {
       // Create a safety snapshot before removing
       createSnapshot(savedOrders, shopSettings, `Trước khi xóa đơn "${targetOrder.title}"`);
       // Keep the pre-delete recovery copy in private storage as well.
-      queuePrivateBackup(savedOrders, shopSettings, draftRef.current);
+      queuePrivateBackup(savedOrders, shopSettings, draftRef.current, deletedOrderTombstonesRef.current);
     }
 
     const updated = savedOrders.filter((o) => o.id !== id);
+    const nextDeletedOrderIds = mergeDeletedOrderTombstones(
+      deletedOrderTombstonesRef.current,
+      { [id]: Date.now() }
+    );
+    deletedOrderTombstonesRef.current = nextDeletedOrderIds;
+    persistDeletedOrderTombstones(nextDeletedOrderIds);
     setSavedOrders(updated);
     savedOrdersRef.current = updated;
     if (editingOrderId === id) setEditingOrderId(null);
@@ -691,7 +776,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(updated, shopSettings, draftRef.current);
+    queuePrivateBackup(updated, shopSettings, draftRef.current, nextDeletedOrderIds);
     showToast('Đã xóa đơn. Bạn có thể bấm "Khôi phục" để hoàn tác lấy lại bất cứ lúc nào!');
   };
 
@@ -699,21 +784,36 @@ export default function App() {
   const handleClearAllHistory = () => {
     if (savedOrders.length > 0) {
       createSnapshot(savedOrders, shopSettings, 'Trước khi xóa toàn bộ sổ tay');
-      queuePrivateBackup(savedOrders, shopSettings, draftRef.current);
+      queuePrivateBackup(savedOrders, shopSettings, draftRef.current, deletedOrderTombstonesRef.current);
     }
+    const nextDeletedOrderIds = mergeDeletedOrderTombstones(
+      deletedOrderTombstonesRef.current,
+      Object.fromEntries(savedOrders.map((order) => [order.id, Date.now()]))
+    );
+    deletedOrderTombstonesRef.current = nextDeletedOrderIds;
+    persistDeletedOrderTombstones(nextDeletedOrderIds);
     setSavedOrders([]);
     savedOrdersRef.current = [];
     localStorage.removeItem('sewing_saved_orders');
-    queuePrivateBackup([], shopSettings, draftRef.current);
+    queuePrivateBackup([], shopSettings, draftRef.current, nextDeletedOrderIds);
     showToast('Đã xóa toàn bộ sổ tay. Bạn có thể vào mục "Khôi phục" để lấy lại dữ liệu!');
   };
 
   // Restore orders from backup snapshot or file
   const handleRestoreOrders = (restoredOrders: OrderRecord[], restoredSettings?: ShopSettings) => {
-    setSavedOrders(restoredOrders);
-    savedOrdersRef.current = restoredOrders;
+    const restoredAt = Date.now();
+    const restoredOrdersWithFreshUpdates = restoredOrders.map((order) => ({
+      ...order,
+      updatedAt: Math.max(orderTimestamp(order), restoredAt),
+    }));
+    const nextDeletedOrderIds = { ...deletedOrderTombstonesRef.current };
+    restoredOrdersWithFreshUpdates.forEach((order) => delete nextDeletedOrderIds[order.id]);
+    deletedOrderTombstonesRef.current = nextDeletedOrderIds;
+    persistDeletedOrderTombstones(nextDeletedOrderIds);
+    setSavedOrders(restoredOrdersWithFreshUpdates);
+    savedOrdersRef.current = restoredOrdersWithFreshUpdates;
     try {
-      localStorage.setItem('sewing_saved_orders', JSON.stringify(restoredOrders));
+      localStorage.setItem('sewing_saved_orders', JSON.stringify(restoredOrdersWithFreshUpdates));
     } catch (e) {
       console.error(e);
     }
@@ -725,7 +825,12 @@ export default function App() {
         console.error(e);
       }
     }
-    queuePrivateBackup(restoredOrders, restoredSettings || shopSettings, draftRef.current);
+    queuePrivateBackup(
+      restoredOrdersWithFreshUpdates,
+      restoredSettings || shopSettings,
+      draftRef.current,
+      deletedOrderTombstonesRef.current
+    );
   };
 
   // Save Shop Settings
@@ -736,7 +841,12 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(savedOrdersRef.current, newSettings, draftRef.current);
+    queuePrivateBackup(
+      savedOrdersRef.current,
+      newSettings,
+      draftRef.current,
+      deletedOrderTombstonesRef.current
+    );
     showToast('Đã lưu cài đặt tiệm may!');
   };
 
