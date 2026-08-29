@@ -89,6 +89,10 @@ export default function App() {
   const [hasSaved, setHasSaved] = useState(false);
   const [completedOrder, setCompletedOrder] = useState<OrderRecord | null>(null);
 
+  useEffect(() => {
+    if (completedOrder && items.length > 0) setCompletedOrder(null);
+  }, [completedOrder, items.length]);
+
   // Modals state
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isImageOcrOpen, setIsImageOcrOpen] = useState(false);
@@ -496,6 +500,8 @@ export default function App() {
     const res = saveOrderToStorage('completed');
     if (res) {
       setCompletedOrder(res.record);
+      setText(INITIAL_TEXT);
+      setItems([]);
       showToast(
         `✓ ĐÃ HOÀN THÀNH & TỰ ĐỘNG CỘNG ${formatVND(res.total)} VÀO DOANH THU!`,
         'success'
@@ -711,12 +717,12 @@ export default function App() {
       <ReceiptModal
         isOpen={isReceiptModalOpen}
         onClose={() => setIsReceiptModalOpen(false)}
-        title={title}
-        items={items}
+        title={completedOrder?.title || title}
+        items={completedOrder?.items || items}
         shopSettings={shopSettings}
-        customerName={customerName}
-        workerName={workerName}
-        orderDate={orderDate}
+        customerName={completedOrder?.customerName || customerName}
+        workerName={completedOrder?.workerName || workerName}
+        orderDate={completedOrder?.date || orderDate}
       />
 
       {activeScreen === 'entry' && (
@@ -755,23 +761,7 @@ export default function App() {
               />
             </div>
 
-            {completedOrder ? (
-              <section className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 p-4 shadow-sm sm:p-5">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Đơn đã hoàn thành</p>
-                    <h2 className="mt-1 text-lg font-black text-slate-900">Bảng kê chi tiết đã được lưu</h2>
-                    <p className="mt-1 text-sm font-semibold text-slate-600">{completedOrder.customerName || 'Khách lẻ'} · {formatVND(completedOrder.finalAmount)}</p>
-                  </div>
-                  <span className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-extrabold text-white">Đã cộng doanh thu</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => setIsReceiptModalOpen(true)} className="rounded-xl border border-blue-200 bg-white px-3.5 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-50">Xem phiếu tính tiền</button>
-                  <button type="button" onClick={closeOrderEntry} className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Về trang chủ</button>
-                  <button type="button" onClick={openOrderEntry} className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-emerald-700">Thêm phiếu mới</button>
-                </div>
-              </section>
-            ) : (
+            {!completedOrder && (
               <div className="w-full">
                 <SummaryCard
                   items={items}
