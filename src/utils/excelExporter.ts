@@ -41,6 +41,30 @@ const thinBorder: Partial<ExcelJS.Borders> = {
   right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
 };
 
+function configureSinglePageReceiptPrint(worksheet: ExcelJS.Worksheet, lastRow: number) {
+  // Excel's default scale takes precedence over Fit to Page, so it must be removed.
+  delete worksheet.pageSetup.scale;
+  Object.assign(worksheet.pageSetup, {
+    paperSize: 9, // A4
+    orientation: 'portrait' as const,
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 1,
+    horizontalCentered: true,
+    verticalCentered: false,
+    showGridLines: false,
+    printArea: `A1:G${lastRow}`,
+    margins: {
+      left: 0.25,
+      right: 0.25,
+      top: 0.3,
+      bottom: 0.3,
+      header: 0.1,
+      footer: 0.1,
+    },
+  });
+}
+
 /**
  * Exports current active order / receipt items to a beautifully formatted Excel (.xlsx) file
  * No manual resizing or reformatting required by user when opening in Excel/WPS.
@@ -359,6 +383,8 @@ export async function exportCurrentOrderToExcel(params: ExportOrderParams) {
   signSubRow.getCell(6).value = '(Ký và ghi rõ họ tên)';
   signSubRow.getCell(6).font = { name: 'Arial', size: 9, italic: true, color: { argb: 'FF64748B' } };
   signSubRow.getCell(6).alignment = { horizontal: 'center', vertical: 'middle' };
+
+  configureSinglePageReceiptPrint(worksheet, currentRowIndex);
 
   const cleanName = (custName || orderTitle || 'Phieu_May').replace(/[^a-zA-Z0-9_\u00C0-\u1EF9]/g, '_');
   const filename = `Phieu_${cleanName}_${date}.xlsx`;

@@ -152,7 +152,42 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    const receiptCanvas = containerRef.current?.querySelector('canvas');
+    if (!receiptCanvas) {
+      window.print();
+      return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      window.print();
+      return;
+    }
+
+    printWindow.opener = null;
+    const receiptImage = receiptCanvas.toDataURL('image/png');
+    printWindow.document.write(`<!doctype html>
+      <html lang="vi">
+        <head>
+          <meta charset="utf-8" />
+          <title>Phiếu tính tiền</title>
+          <style>
+            @page { size: A4 portrait; margin: 7mm; }
+            html, body { margin: 0; width: 100%; min-height: 0; background: #fff; }
+            body { display: flex; justify-content: center; align-items: flex-start; }
+            .receipt-page { width: 100%; height: 283mm; display: flex; justify-content: center; align-items: flex-start; overflow: hidden; }
+            img { display: block; max-width: 100%; max-height: 283mm; width: auto; height: auto; object-fit: contain; break-inside: avoid; page-break-inside: avoid; }
+          </style>
+        </head>
+        <body>
+          <main class="receipt-page"><img src="${receiptImage}" alt="Phiếu tính tiền" /></main>
+          <script>
+            window.addEventListener('load', () => window.print());
+            window.addEventListener('afterprint', () => window.close());
+          </script>
+        </body>
+      </html>`);
+    printWindow.document.close();
   };
 
   return (
