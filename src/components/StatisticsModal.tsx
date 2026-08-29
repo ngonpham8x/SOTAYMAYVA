@@ -15,6 +15,7 @@ import {
   FileSpreadsheet,
   Phone,
   Sparkles,
+  ArrowUpRight,
 } from 'lucide-react';
 import { OrderRecord, ShopSettings, StatsTimeframe } from '../types';
 import { formatVND } from '../utils/textParser';
@@ -67,6 +68,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
   const [selectedWorker, setSelectedWorker] = useState<string>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed_only' | 'pending_only'>('all');
+  const [activeMetric, setActiveMetric] = useState<{ label: string; detail: string } | null>(null);
 
   // Extract unique workers
   const workers = useMemo(() => {
@@ -260,6 +262,22 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
     };
   }, [orders]);
 
+  const metricCards = [
+    { id: 'all', label: 'Tổng doanh thu', value: revenueSummary.all.total, unit: 'VNĐ', detail: `Tất cả ${revenueSummary.all.count} đơn đã hoàn thành`, timeframe: 'all' as StatsTimeframe, icon: DollarSign, tone: 'emerald' },
+    { id: 'day', label: 'Doanh thu hôm nay', value: revenueSummary.day.total, unit: 'VNĐ', detail: `${revenueSummary.day.count} đơn đã hoàn thành hôm nay`, timeframe: 'day' as StatsTimeframe, icon: Calendar, tone: 'blue' },
+    { id: 'week', label: 'Doanh thu tuần này', value: revenueSummary.week.total, unit: 'VNĐ', detail: `${revenueSummary.week.count} đơn đã hoàn thành trong tuần`, timeframe: 'week' as StatsTimeframe, icon: TrendingUp, tone: 'violet' },
+    { id: 'month', label: 'Doanh thu tháng này', value: revenueSummary.month.total, unit: 'VNĐ', detail: `${revenueSummary.month.count} đơn đã hoàn thành trong tháng`, timeframe: 'month' as StatsTimeframe, icon: Sparkles, tone: 'cyan' },
+    { id: 'orders', label: 'Số đơn sửa / may', value: stats.totalOrders, unit: 'đơn', detail: `${stats.pendingOrders} đơn đang làm trong ${periodLabel.toLowerCase()}`, timeframe, icon: Scissors, tone: 'blue' },
+    { id: 'items', label: 'Số món / công đoạn', value: stats.totalGarments, unit: 'món', detail: `Tổng số món đã ghi nhận trong ${periodLabel.toLowerCase()}`, timeframe, icon: Sparkles, tone: 'violet' },
+    { id: 'average', label: 'TB mỗi đơn', value: stats.avgOrderValue, unit: 'VNĐ', detail: `Doanh số trung bình của ${stats.totalOrders} đơn trong ${periodLabel.toLowerCase()}`, timeframe, icon: TrendingUp, tone: 'amber' },
+  ];
+
+  const handleMetricClick = (metric: (typeof metricCards)[number]) => {
+    setTimeframe(metric.timeframe);
+    setReferenceDate(formatDateString(new Date()));
+    setActiveMetric({ label: metric.label, detail: metric.detail });
+    window.setTimeout(() => document.getElementById('statistics-detail')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 0);
+  };
   // Navigate Period (Previous / Next)
   const handleShiftPeriod = (direction: -1 | 1) => {
     const ref = parseLocalDate(referenceDate);
@@ -462,122 +480,57 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
         {/* Modal Scrollable Body */}
         <div className={`p-4 sm:p-6 space-y-6 bg-slate-50/50 ${embedded ? '' : 'overflow-y-auto flex-1'}`}>
           {/* Key Metric KPI Cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-            {/* KPI 1: Doanh Thu */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Tổng Doanh Thu
-                </span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
-                  <DollarSign className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                  {revenueSummary.all.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span>
-                </p>
-                <p className="text-[11px] text-emerald-700 font-semibold mt-1">
-Tất cả: {revenueSummary.all.count} đơn đã hoàn thành
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 sm:gap-4">
+            {metricCards.map((metric) => {
+              const Icon = metric.icon;
+              const tone = {
+                emerald: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+                blue: 'bg-blue-50 text-blue-600 ring-blue-100',
+                violet: 'bg-violet-50 text-violet-600 ring-violet-100',
+                cyan: 'bg-cyan-50 text-cyan-600 ring-cyan-100',
+                amber: 'bg-amber-50 text-amber-600 ring-amber-100',
+              }[metric.tone];
 
-            {/* Doanh thu hôm nay */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Doanh Thu Hôm Nay</span>
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold"><Calendar className="w-4 h-4" /></div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">{revenueSummary.day.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span></p>
-                <p className="text-[11px] text-blue-700 font-semibold mt-1">{revenueSummary.day.count} đơn đã hoàn thành</p>
-              </div>
-            </div>
-
-            {/* Doanh thu tuần này */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Doanh Thu Tuần Này</span>
-                <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center font-bold"><TrendingUp className="w-4 h-4" /></div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">{revenueSummary.week.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span></p>
-                <p className="text-[11px] text-violet-700 font-semibold mt-1">{revenueSummary.week.count} đơn đã hoàn thành</p>
-              </div>
-            </div>
-
-            {/* Doanh thu tháng này */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Doanh Thu Tháng Này</span>
-                <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold"><Sparkles className="w-4 h-4" /></div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">{revenueSummary.month.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span></p>
-                <p className="text-[11px] text-cyan-700 font-semibold mt-1">{revenueSummary.month.count} đơn đã hoàn thành</p>
-              </div>
-            </div>
-            {/* KPI 2: Số Đơn Hàng */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Số Đơn Sửa / May
-                </span>
-                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
-                  <Scissors className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                  {stats.totalOrders} <span className="text-xs font-semibold text-slate-400">đơn</span>
-                </p>
-                <p className="text-[11px] text-amber-700 font-semibold mt-1">
-                  Đang làm: {stats.pendingOrders} đơn
-                </p>
-              </div>
-            </div>
-
-            {/* KPI 3: Số Món / Công Đoạn */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Số Món / Công Đoạn
-                </span>
-                <div className="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                  {stats.totalGarments} <span className="text-xs font-semibold text-slate-400">món</span>
-                </p>
-                <p className="text-[11px] text-slate-500 font-medium mt-1">
-                  Đã thực hiện xong
-                </p>
-              </div>
-            </div>
-
-            {/* KPI 4: Giá Trị Trung Bình */}
-            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  TB Mỗi Đơn
-                </span>
-                <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold">
-                  <TrendingUp className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="mt-3">
-                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                  {stats.avgOrderValue.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span>
-                </p>
-                <p className="text-[11px] text-slate-500 font-medium mt-1">
-                  Doanh số trung bình
-                </p>
-              </div>
-            </div>
+              return (
+                <button
+                  key={metric.id}
+                  type="button"
+                  onClick={() => handleMetricClick(metric)}
+                  className="group relative min-h-36 overflow-hidden rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition duration-200 hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500/30"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500 sm:text-xs">{metric.label}</span>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ring-1 ${tone}`}><Icon className="h-4 w-4" /></span>
+                  </div>
+                  <p className="mt-4 truncate font-mono text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+                    {metric.value.toLocaleString('vi-VN')} <span className="text-[10px] font-bold text-slate-400 sm:text-xs">{metric.unit}</span>
+                  </p>
+                  <div className="mt-2 flex items-center justify-between gap-2 text-[11px] font-semibold text-slate-500">
+                    <span className="truncate">{metric.detail}</span>
+                    <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-blue-500 transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  </div>
+                </button>
+              );
+            })}
           </div>
+
+          {activeMetric && (
+            <section id="statistics-detail" className="rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 via-white to-emerald-50 p-4 shadow-xs sm:p-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-wider text-blue-600">Chi tiết đang xem</p>
+                  <h3 className="mt-1 text-base font-black text-slate-900">{activeMetric.label}</h3>
+                  <p className="mt-1 text-xs font-medium text-slate-600">{activeMetric.detail}</p>
+                </div>
+                <button type="button" onClick={() => setActiveMetric(null)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50">Đóng chi tiết</button>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-xl bg-white/90 px-3 py-2.5"><p className="text-[10px] font-bold uppercase text-slate-400">Đơn trong kỳ</p><p className="mt-1 text-base font-black text-slate-900">{stats.totalOrders}</p></div>
+                <div className="rounded-xl bg-white/90 px-3 py-2.5"><p className="text-[10px] font-bold uppercase text-slate-400">Hoàn thành</p><p className="mt-1 text-base font-black text-emerald-700">{stats.completedOrders}</p></div>
+                <button type="button" onClick={() => document.getElementById('statistics-order-list')?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="rounded-xl bg-slate-900 px-3 py-2.5 text-left text-xs font-bold text-white transition hover:bg-blue-700">Xem danh sách đơn →</button>
+              </div>
+            </section>
+          )}
 
           {/* Worker Revenue Breakdown */}
           <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-xs">
@@ -631,7 +584,7 @@ Tất cả: {revenueSummary.all.count} đơn đã hoàn thành
           </div>
 
           {/* Orders Detailed Table */}
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+          <div id="statistics-order-list" className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/80">
               <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-blue-600" />

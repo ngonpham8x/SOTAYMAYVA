@@ -160,7 +160,7 @@ export default function App() {
     const deltaY = event.clientY - drag.startY;
     if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) quickAddMovedRef.current = true;
     const x = Math.max(-Math.max(window.innerWidth - 230, 0), Math.min(16, drag.originX + deltaX));
-    const y = Math.max(-72, Math.min(Math.max(window.innerHeight - 160, 0), drag.originY + deltaY));
+    const y = Math.max(-Math.max(window.innerHeight - 152, 0), Math.min(16, drag.originY + deltaY));
     setQuickAddOffset({ x, y });
   };
 
@@ -536,7 +536,7 @@ export default function App() {
       {activeScreen === 'dashboard' && (
         isQuickAddVisible ? (
           <div
-            className="fixed right-4 top-20 z-30 flex touch-none items-center gap-1.5"
+            className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-[60] flex touch-none items-center gap-1.5"
             style={{ transform: `translate3d(${quickAddOffset.x}px, ${quickAddOffset.y}px, 0)` }}
             onPointerDown={handleQuickAddDragStart}
             onPointerMove={handleQuickAddDragMove}
@@ -547,7 +547,7 @@ export default function App() {
               id="btn-create-order"
               type="button"
               onClick={handleQuickAddClick}
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3.5 text-xs font-extrabold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 active:scale-95 sm:text-sm"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-extrabold text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-cyan-700 active:scale-95"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} /> Thêm phiếu mới
             </button>
@@ -566,7 +566,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsQuickAddVisible(true)}
-            className="fixed right-4 top-20 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+            className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-[60] flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-cyan-700"
             title="Hiện nút thêm phiếu mới"
             aria-label="Hiện nút thêm phiếu mới"
           >
