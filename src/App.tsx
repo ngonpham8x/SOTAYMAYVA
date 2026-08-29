@@ -23,11 +23,33 @@ import {
   createSnapshot,
   addToTrash,
   checkAndRunDailyAutoBackup,
+  fetchPrivateBackup,
   queuePrivateBackup,
 } from './utils/backupVault';
 import { ArrowLeft, Check, Eye, EyeOff, GripVertical, Plus, ShieldCheck } from 'lucide-react';
 
 const INITIAL_TEXT = '';
+
+function mergeOrders(localOrders: OrderRecord[], remoteOrders: OrderRecord[]): OrderRecord[] {
+  const byId = new Map<string, OrderRecord>();
+  [...localOrders, ...remoteOrders].forEach((order) => {
+    const current = byId.get(order.id);
+    const currentUpdatedAt = Number(current?.updatedAt) || Number(current?.createdAt) || 0;
+    const orderUpdatedAt = Number(order.updatedAt) || Number(order.createdAt) || 0;
+    if (!current || orderUpdatedAt >= currentUpdatedAt) byId.set(order.id, order);
+  });
+  return [...byId.values()].sort((a, b) => (Number(b.createdAt) || 0) - (Number(a.createdAt) || 0));
+}
+
+function orderListsMatch(first: OrderRecord[], second: OrderRecord[]): boolean {
+  if (first.length !== second.length) return false;
+  return first.every((order, index) => {
+    const compared = second[index];
+    return order.id === compared?.id &&
+      (Number(order.updatedAt) || Number(order.createdAt) || 0) ===
+      (Number(compared.updatedAt) || Number(compared.createdAt) || 0);
+  });
+}
 
 const DEFAULT_SETTINGS: ShopSettings = {
   shopName: 'TIỆM MAY & SỬA ĐỒ NGUYỄN THỊ NGỌC',
@@ -65,6 +87,7 @@ export default function App() {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ text: string; type?: 'success' | 'info' } | null>(null);
   const [hasSaved, setHasSaved] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState<OrderRecord | null>(null);
 
   // Modals state
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
@@ -97,6 +120,9 @@ export default function App() {
       return [];
     }
   });
+  const savedOrdersRef = useRef(savedOrders);
+  const shopSettingsRef = useRef<ShopSettings>(DEFAULT_SETTINGS);
+  const remoteSnapshotTimestampRef = useRef(0);
 
   // Shop Settings in localStorage
   const [shopSettings, setShopSettings] = useState<ShopSettings>(() => {
@@ -117,11 +143,18 @@ export default function App() {
     }
   });
 
+  useEffect(() => {
+    savedOrdersRef.current = savedOrders;
+  }, [savedOrders]);
+
+  useEffect(() => {
+    shopSettingsRef.current = shopSettings;
+  }, [shopSettings]);
+
   // Background daily automatic backup check on app startup
   useEffect(() => {
-    if (savedOrders.length > 0) {
-      checkAndRunDailyAutoBackup(savedOrders, shopSettings);
-      queuePrivateBackup(savedOrders, shopSettings);
+    if (savedOrdersRef.current.length > 0) {
+      checkAndRunDailyAutoBackup(savedOrdersRef.current, shopSettingsRef.current);
     }
   }, []);
 
@@ -131,8 +164,89 @@ export default function App() {
     setTimeout(() => setToastMessage(null), 3500);
   };
 
+  useEffect(() => {
+    let disposed = false;
+    const applyRemoteSnapshot = async () => {
+      const remoteResult = await fetchPrivateBackup();
+      if (disposed || remoteResult.state === 'unavailable') return;
+      if (remoteResult.state === 'missing') {
+        if (savedOrdersRef.current.length > 0) {
+          queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current);
+        }
+        return;
+      }
+      const snapshot = remoteResult.snapshot;
+      if (snapshot.timestamp <= remoteSnapshotTimestampRef.current) return;
+      remoteSnapshotTimestampRef.current = snapshot.timestamp;
+      const mergedOrders = mergeOrders(savedOrdersRef.current, snapshot.orders);
+      if (!orderListsMatch(savedOrdersRef.current, mergedOrders)) {
+        savedOrdersRef.current = mergedOrders;
+        setSavedOrders(mergedOrders);
+        try {
+          localStorage.setItem('sewing_saved_orders', JSON.stringify(mergedOrders));
+        } catch (error) {
+          console.warn('Could not persist synced orders:', error);
+        }
+        showToast('Đã tự đồng bộ dữ liệu mới nhất.', 'info');
+      }
+      if (snapshot.shopSettings) {
+        const nextSettings = { ...DEFAULT_SETTINGS, ...snapshot.shopSettings };
+        if (JSON.stringify(shopSettingsRef.current) !== JSON.stringify(nextSettings)) {
+          shopSettingsRef.current = nextSettings;
+          setShopSettings(nextSettings);
+          try {
+            localStorage.setItem('sewing_shop_settings', JSON.stringify(nextSettings));
+          } catch (error) {
+            console.warn('Could not persist synced settings:', error);
+          }
+        }
+      }
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'sewing_saved_orders' || !event.newValue) return;
+      try {
+        const incoming = JSON.parse(event.newValue);
+        if (!Array.isArray(incoming)) return;
+        savedOrdersRef.current = incoming;
+        setSavedOrders(incoming);
+      } catch {
+        // Ignore malformed data from another tab.
+      }
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') void applyRemoteSnapshot();
+    };
+    void applyRemoteSnapshot();
+    const syncTimer = window.setInterval(() => void applyRemoteSnapshot(), 15_000);
+    window.addEventListener('focus', handleVisibility);
+    window.addEventListener('storage', handleStorage);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      disposed = true;
+      window.clearInterval(syncTimer);
+      window.removeEventListener('focus', handleVisibility);
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, []);
+
+
+  const resetOrderDraft = () => {
+    setText(INITIAL_TEXT);
+    setItems([]);
+    setTitle('');
+    setCustomerName('');
+    setCustomerPhone('');
+    setWorkerName(shopSettingsRef.current.ownerName || 'Nguyễn Thị Ngọc');
+    setCategory('alteration');
+    setStatus('pending');
+    setOrderDate(new Date().toISOString().split('T')[0]);
+    setHasSaved(false);
+    setCompletedOrder(null);
+  };
 
   const openOrderEntry = () => {
+    resetOrderDraft();
     setActiveScreen('entry');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -381,6 +495,7 @@ export default function App() {
     setStatus('completed');
     const res = saveOrderToStorage('completed');
     if (res) {
+      setCompletedOrder(res.record);
       showToast(
         `✓ ĐÃ HOÀN THÀNH & TỰ ĐỘNG CỘNG ${formatVND(res.total)} VÀO DOANH THU!`,
         'success'
@@ -420,6 +535,10 @@ export default function App() {
     setText(order.rawText || order.items.map((i) => `${i.name} ${i.unitPrice / 1000}k`).join('. '));
     setItems(order.items);
     setHasSaved(true);
+    setCompletedOrder(null);
+    setIsHistoryOpen(false);
+    setActiveScreen('entry');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast(`Đã mở lại đơn ngày ${order.date}: "${order.title}"`);
   };
 
@@ -485,9 +604,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    if (savedOrders.length > 0) {
-      queuePrivateBackup(savedOrders, newSettings);
-    }
+    queuePrivateBackup(savedOrders, newSettings);
     showToast('Đã lưu cài đặt tiệm may!');
   };
 
@@ -611,20 +728,22 @@ export default function App() {
               </button>
             </section>
 
-            <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12">
-              <div className="flex flex-col lg:col-span-7">
-                <TextInputArea
-                  text={text}
-                  onChangeText={handleTextChange}
-                  onAiParse={handleAiParse}
-                  onOpenImageOcr={() => setIsImageOcrOpen(true)}
-                  isAiLoading={isAiLoading}
-                />
+            {!completedOrder && (
+              <div className="grid grid-cols-1 gap-5 sm:gap-6 lg:grid-cols-12">
+                <div className="flex flex-col lg:col-span-7">
+                  <TextInputArea
+                    text={text}
+                    onChangeText={handleTextChange}
+                    onAiParse={handleAiParse}
+                    onOpenImageOcr={() => setIsImageOcrOpen(true)}
+                    isAiLoading={isAiLoading}
+                  />
+                </div>
+                <div className="flex flex-col lg:col-span-5">
+                  <AlterationCatalog onAppendText={handleAppendText} onDirectAddItem={handleDirectAddItem} />
+                </div>
               </div>
-              <div className="flex flex-col lg:col-span-5">
-                <AlterationCatalog onAppendText={handleAppendText} onDirectAddItem={handleDirectAddItem} />
-              </div>
-            </div>
+            )}
 
             <div className="w-full">
               <ItemsTable
@@ -636,30 +755,48 @@ export default function App() {
               />
             </div>
 
-            <div className="w-full">
-              <SummaryCard
-                items={items}
-                title={title}
-                onChangeTitle={setTitle}
-                workerName={workerName}
-                onChangeWorkerName={setWorkerName}
-                customerName={customerName}
-                onChangeCustomerName={setCustomerName}
-                customerPhone={customerPhone}
-                onChangeCustomerPhone={setCustomerPhone}
-                date={orderDate}
-                onChangeDate={setOrderDate}
-                category={category}
-                onChangeCategory={setCategory}
-                status={status}
-                onChangeStatus={setStatus}
-                shopSettings={shopSettings}
-                onSaveOrder={handleSaveOrder}
-                onCompleteAndSaveOrder={handleCompleteAndSaveOrder}
-                onOpenReceiptModal={() => setIsReceiptModalOpen(true)}
-                hasSaved={hasSaved}
-              />
-            </div>
+            {completedOrder ? (
+              <section className="rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 via-white to-cyan-50 p-4 shadow-sm sm:p-5">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-extrabold uppercase tracking-wider text-emerald-700">Đơn đã hoàn thành</p>
+                    <h2 className="mt-1 text-lg font-black text-slate-900">Bảng kê chi tiết đã được lưu</h2>
+                    <p className="mt-1 text-sm font-semibold text-slate-600">{completedOrder.customerName || 'Khách lẻ'} · {formatVND(completedOrder.finalAmount)}</p>
+                  </div>
+                  <span className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-extrabold text-white">Đã cộng doanh thu</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button type="button" onClick={() => setIsReceiptModalOpen(true)} className="rounded-xl border border-blue-200 bg-white px-3.5 py-2 text-xs font-bold text-blue-700 transition hover:bg-blue-50">Xem phiếu tính tiền</button>
+                  <button type="button" onClick={closeOrderEntry} className="rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-slate-800">Về trang chủ</button>
+                  <button type="button" onClick={openOrderEntry} className="rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-emerald-700">Thêm phiếu mới</button>
+                </div>
+              </section>
+            ) : (
+              <div className="w-full">
+                <SummaryCard
+                  items={items}
+                  title={title}
+                  onChangeTitle={setTitle}
+                  workerName={workerName}
+                  onChangeWorkerName={setWorkerName}
+                  customerName={customerName}
+                  onChangeCustomerName={setCustomerName}
+                  customerPhone={customerPhone}
+                  onChangeCustomerPhone={setCustomerPhone}
+                  date={orderDate}
+                  onChangeDate={setOrderDate}
+                  category={category}
+                  onChangeCategory={setCategory}
+                  status={status}
+                  onChangeStatus={setStatus}
+                  shopSettings={shopSettings}
+                  onSaveOrder={handleSaveOrder}
+                  onCompleteAndSaveOrder={handleCompleteAndSaveOrder}
+                  onOpenReceiptModal={() => setIsReceiptModalOpen(true)}
+                  hasSaved={hasSaved}
+                />
+              </div>
+            )}
 
             <div className="flex justify-center pt-2">
               <button

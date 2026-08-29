@@ -770,6 +770,22 @@ async function sendBackupEmail(payload: BackupPayload, isManual: boolean): Promi
   });
 }
 
+app.get("/api/backup/snapshot", async (_req, res) => {
+  try {
+    const payload = await readLatestBackup();
+    if (!payload) return res.status(404).json({ error: "Chưa có dữ liệu đồng bộ." });
+    res.set("Cache-Control", "no-store");
+    return res.json({
+      timestamp: payload.timestamp,
+      orders: payload.orders,
+      shopSettings: payload.shopSettings,
+    });
+  } catch (error: any) {
+    console.error("Backup snapshot read error:", error);
+    return res.status(503).json({ error: error.message || "Không thể tải dữ liệu đồng bộ." });
+  }
+});
+
 app.post("/api/backup/snapshot", async (req, res) => {
   try {
     const payload = createBackupPayload(req.body);

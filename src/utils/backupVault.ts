@@ -215,6 +215,40 @@ export async function parseBackupFile(file: File): Promise<{ orders: OrderRecord
  * that receives scheduled recovery emails remains server-side and is never
  * sent to or rendered by the browser.
  */
+export interface PrivateBackupSnapshot {
+  timestamp: number;
+  orders: OrderRecord[];
+  shopSettings?: ShopSettings;
+}
+
+export type PrivateBackupFetchResult =
+  | { state: 'available'; snapshot: PrivateBackupSnapshot }
+  | { state: 'missing' }
+  | { state: 'unavailable' };
+
+export async function fetchPrivateBackup(): Promise<PrivateBackupFetchResult> {
+  try {
+    const response = await fetch('/api/backup/snapshot', { cache: 'no-store' });
+    if (response.status === 404) return { state: 'missing' };
+    if (!response.ok) return { state: 'unavailable' };
+    const payload = await response.json();
+    if (!Array.isArray(payload?.orders) || !Number.isFinite(Number(payload?.timestamp))) {
+      return { state: 'unavailable' };
+    }
+    return {
+      state: 'available',
+      snapshot: {
+        timestamp: Number(payload.timestamp),
+        orders: payload.orders as OrderRecord[],
+        shopSettings: payload.shopSettings as ShopSettings | undefined,
+      },
+    };
+  } catch (error) {
+    console.warn('Private backup fetch failed:', error);
+    return { state: 'unavailable' };
+  }
+}
+
 export async function syncPrivateBackup(
   orders: OrderRecord[],
   settings?: ShopSettings
