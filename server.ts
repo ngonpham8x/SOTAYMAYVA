@@ -601,6 +601,7 @@ type BackupPayload = {
   totalOrders: number;
   totalRevenue: number;
   shopSettings?: Record<string, unknown>;
+  draft?: Record<string, unknown>;
   orders: Record<string, any>[];
 };
 
@@ -633,6 +634,11 @@ function createBackupPayload(body: any): BackupPayload {
     throw new Error(`Bản sao lưu chỉ hỗ trợ tối đa ${MAX_BACKUP_ORDERS} đơn hàng mỗi lần.`);
   }
 
+  const draft = body?.draft;
+  if (draft !== undefined && (!draft || typeof draft !== 'object' || Array.isArray(draft))) {
+    throw new Error('Dữ liệu phiếu đang nhập không hợp lệ.');
+  }
+
   const totalRevenue = orders.reduce((sum: number, order: any) => {
     const amount = Number(order?.finalAmount);
     return sum + (Number.isFinite(amount) ? amount : 0);
@@ -645,6 +651,7 @@ function createBackupPayload(body: any): BackupPayload {
     totalOrders: orders.length,
     totalRevenue,
     shopSettings: body?.shopSettings,
+    draft: draft as Record<string, unknown> | undefined,
     orders,
   };
 
@@ -779,6 +786,7 @@ app.get("/api/backup/snapshot", async (_req, res) => {
       timestamp: payload.timestamp,
       orders: payload.orders,
       shopSettings: payload.shopSettings,
+      draft: payload.draft,
     });
   } catch (error: any) {
     console.error("Backup snapshot read error:", error);

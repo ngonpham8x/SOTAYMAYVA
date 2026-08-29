@@ -25,6 +25,7 @@ import {
   checkAndRunDailyAutoBackup,
   fetchPrivateBackup,
   queuePrivateBackup,
+  type SharedOrderDraft,
 } from './utils/backupVault';
 import { ArrowLeft, Check, Eye, EyeOff, GripVertical, Plus, ShieldCheck } from 'lucide-react';
 
@@ -50,6 +51,20 @@ function orderListsMatch(first: OrderRecord[], second: OrderRecord[]): boolean {
       (Number(compared.updatedAt) || Number(compared.createdAt) || 0);
   });
 }
+function sharedDraftSignature(draft: SharedOrderDraft): string {
+  return JSON.stringify({
+    text: draft.text,
+    title: draft.title,
+    customerName: draft.customerName,
+    customerPhone: draft.customerPhone,
+    workerName: draft.workerName,
+    category: draft.category,
+    status: draft.status,
+    orderDate: draft.orderDate,
+    items: draft.items,
+  });
+}
+
 
 const DEFAULT_SETTINGS: ShopSettings = {
   shopName: 'TIỆM MAY & SỬA ĐỒ NGUYỄN THỊ NGỌC',
@@ -128,6 +143,22 @@ export default function App() {
   const savedOrdersRef = useRef(savedOrders);
   const shopSettingsRef = useRef<ShopSettings>(DEFAULT_SETTINGS);
   const remoteSnapshotTimestampRef = useRef(0);
+  const draftRef = useRef<SharedOrderDraft>({
+    updatedAt: 0,
+    text: INITIAL_TEXT,
+    title: '',
+    customerName: '',
+    customerPhone: '',
+    workerName: 'Nguyễn Thị Ngọc',
+    category: 'alteration',
+    status: 'completed',
+    orderDate: new Date().toISOString().split('T')[0],
+    items: [],
+  });
+  const draftSignatureRef = useRef('');
+  const draftInitializedRef = useRef(false);
+  const draftHasLocalChangesRef = useRef(false);
+  const draftSyncReadyRef = useRef(false);
 
   // Shop Settings in localStorage
   const [shopSettings, setShopSettings] = useState<ShopSettings>(() => {
@@ -156,6 +187,36 @@ export default function App() {
     shopSettingsRef.current = shopSettings;
   }, [shopSettings]);
 
+  useEffect(() => {
+    const currentDraft: SharedOrderDraft = {
+      updatedAt: 0,
+      text,
+      title,
+      customerName,
+      customerPhone,
+      workerName,
+      category,
+      status,
+      orderDate,
+      items,
+    };
+    const signature = sharedDraftSignature(currentDraft);
+    if (!draftInitializedRef.current) {
+      draftInitializedRef.current = true;
+      draftSignatureRef.current = signature;
+      draftRef.current = currentDraft;
+      return;
+    }
+    if (signature === draftSignatureRef.current) return;
+
+    const nextDraft = { ...currentDraft, updatedAt: Date.now() };
+    draftRef.current = nextDraft;
+    draftSignatureRef.current = signature;
+    draftHasLocalChangesRef.current = true;
+    if (draftSyncReadyRef.current) {
+      queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current, nextDraft);
+    }
+  }, [text, title, customerName, customerPhone, workerName, category, status, orderDate, items]);
   // Background daily automatic backup check on app startup
   useEffect(() => {
     if (savedOrdersRef.current.length > 0) {
@@ -175,8 +236,9 @@ export default function App() {
       const remoteResult = await fetchPrivateBackup();
       if (disposed || remoteResult.state === 'unavailable') return;
       if (remoteResult.state === 'missing') {
-        if (savedOrdersRef.current.length > 0) {
-          queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current);
+        draftSyncReadyRef.current = true;
+        if (savedOrdersRef.current.length > 0 || draftHasLocalChangesRef.current) {
+          queuePrivateBackup(savedOrdersRef.current, shopSettingsRef.current, draftRef.current);
         }
         return;
       }
@@ -184,6 +246,7 @@ export default function App() {
       if (snapshot.timestamp <= remoteSnapshotTimestampRef.current) return;
       remoteSnapshotTimestampRef.current = snapshot.timestamp;
       const mergedOrders = mergeOrders(savedOrdersRef.current, snapshot.orders);
+      const shouldPushMergedOrders = !orderListsMatch(snapshot.orders, mergedOrders);
       if (!orderListsMatch(savedOrdersRef.current, mergedOrders)) {
         savedOrdersRef.current = mergedOrders;
         setSavedOrders(mergedOrders);
@@ -206,6 +269,41 @@ export default function App() {
           }
         }
       }
+      const remoteDraft = snapshot.draft;
+      const serverConfirmedDraft = Boolean(
+        remoteDraft &&
+        remoteDraft.updatedAt === draftRef.current.updatedAt &&
+        sharedDraftSignature(remoteDraft) === draftSignatureRef.current
+      );
+      if (serverConfirmedDraft) {
+        draftHasLocalChangesRef.current = false;
+      }
+      if (
+        remoteDraft &&
+        Number.isFinite(remoteDraft.updatedAt) &&
+        (!draftHasLocalChangesRef.current || remoteDraft.updatedAt > draftRef.current.updatedAt)
+      ) {
+        draftRef.current = remoteDraft;
+        draftSignatureRef.current = sharedDraftSignature(remoteDraft);
+        draftInitializedRef.current = true;
+        draftHasLocalChangesRef.current = false;
+        setText(remoteDraft.text);
+        setTitle(remoteDraft.title);
+        setCustomerName(remoteDraft.customerName);
+        setCustomerPhone(remoteDraft.customerPhone);
+        setWorkerName(remoteDraft.workerName);
+        setCategory(remoteDraft.category);
+        setStatus(remoteDraft.status);
+        setOrderDate(remoteDraft.orderDate);
+        setItems(remoteDraft.items);
+        setHasSaved(false);
+        setEditingOrderId(null);
+        setCompletedOrder(null);
+      }
+      draftSyncReadyRef.current = true;
+      if (shouldPushMergedOrders || draftHasLocalChangesRef.current) {
+        queuePrivateBackup(mergedOrders, shopSettingsRef.current, draftRef.current);
+      }
     };
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== 'sewing_saved_orders' || !event.newValue) return;
@@ -222,7 +320,7 @@ export default function App() {
       if (document.visibilityState === 'visible') void applyRemoteSnapshot();
     };
     void applyRemoteSnapshot();
-    const syncTimer = window.setInterval(() => void applyRemoteSnapshot(), 15_000);
+    const syncTimer = window.setInterval(() => void applyRemoteSnapshot(), 4_000);
     window.addEventListener('focus', handleVisibility);
     window.addEventListener('storage', handleStorage);
     document.addEventListener('visibilitychange', handleVisibility);
@@ -484,12 +582,13 @@ export default function App() {
       ? savedOrders.map((order) => (order.id === existingOrder.id ? newRecord : order))
       : [newRecord, ...savedOrders];
     setSavedOrders(updated);
+    savedOrdersRef.current = updated;
     try {
       localStorage.setItem('sewing_saved_orders', JSON.stringify(updated));
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(updated, shopSettings);
+    queuePrivateBackup(updated, shopSettings, draftRef.current);
     setHasSaved(true);
     return { record: newRecord, total: calc.total, wasUpdated: Boolean(existingOrder) };
   };
@@ -534,12 +633,13 @@ export default function App() {
       o.id === id ? { ...o, status: newStatus, updatedAt: Date.now() } : o
     );
     setSavedOrders(updated);
+    savedOrdersRef.current = updated;
     try {
       localStorage.setItem('sewing_saved_orders', JSON.stringify(updated));
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(updated, shopSettings);
+    queuePrivateBackup(updated, shopSettings, draftRef.current);
     const target = updated.find((o) => o.id === id);
     if (newStatus === 'completed') {
       showToast(`✓ Đã đánh dấu hoàn thành & cộng ${formatVND(target?.finalAmount || 0)} vào thống kê!`);
@@ -579,17 +679,19 @@ export default function App() {
       // Create a safety snapshot before removing
       createSnapshot(savedOrders, shopSettings, `Trước khi xóa đơn "${targetOrder.title}"`);
       // Keep the pre-delete recovery copy in private storage as well.
-      queuePrivateBackup(savedOrders, shopSettings);
+      queuePrivateBackup(savedOrders, shopSettings, draftRef.current);
     }
 
     const updated = savedOrders.filter((o) => o.id !== id);
     setSavedOrders(updated);
+    savedOrdersRef.current = updated;
     if (editingOrderId === id) setEditingOrderId(null);
     try {
       localStorage.setItem('sewing_saved_orders', JSON.stringify(updated));
     } catch (e) {
       console.error(e);
     }
+    queuePrivateBackup(updated, shopSettings, draftRef.current);
     showToast('Đã xóa đơn. Bạn có thể bấm "Khôi phục" để hoàn tác lấy lại bất cứ lúc nào!');
   };
 
@@ -597,16 +699,19 @@ export default function App() {
   const handleClearAllHistory = () => {
     if (savedOrders.length > 0) {
       createSnapshot(savedOrders, shopSettings, 'Trước khi xóa toàn bộ sổ tay');
-      queuePrivateBackup(savedOrders, shopSettings);
+      queuePrivateBackup(savedOrders, shopSettings, draftRef.current);
     }
     setSavedOrders([]);
+    savedOrdersRef.current = [];
     localStorage.removeItem('sewing_saved_orders');
+    queuePrivateBackup([], shopSettings, draftRef.current);
     showToast('Đã xóa toàn bộ sổ tay. Bạn có thể vào mục "Khôi phục" để lấy lại dữ liệu!');
   };
 
   // Restore orders from backup snapshot or file
   const handleRestoreOrders = (restoredOrders: OrderRecord[], restoredSettings?: ShopSettings) => {
     setSavedOrders(restoredOrders);
+    savedOrdersRef.current = restoredOrders;
     try {
       localStorage.setItem('sewing_saved_orders', JSON.stringify(restoredOrders));
     } catch (e) {
@@ -620,9 +725,7 @@ export default function App() {
         console.error(e);
       }
     }
-    if (restoredOrders.length > 0) {
-      queuePrivateBackup(restoredOrders, restoredSettings || shopSettings);
-    }
+    queuePrivateBackup(restoredOrders, restoredSettings || shopSettings, draftRef.current);
   };
 
   // Save Shop Settings
@@ -633,7 +736,7 @@ export default function App() {
     } catch (e) {
       console.error(e);
     }
-    queuePrivateBackup(savedOrders, newSettings);
+    queuePrivateBackup(savedOrdersRef.current, newSettings, draftRef.current);
     showToast('Đã lưu cài đặt tiệm may!');
   };
 

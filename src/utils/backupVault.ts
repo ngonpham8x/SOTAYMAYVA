@@ -1,4 +1,4 @@
-import { OrderRecord, ShopSettings } from '../types';
+import { OrderCategory, OrderRecord, ParsedItem, ShopSettings } from '../types';
 
 export interface BackupSnapshot {
   id: string;
@@ -10,6 +10,7 @@ export interface BackupSnapshot {
   totalRevenue: number;
   orders: OrderRecord[];
   shopSettings?: ShopSettings;
+  draft?: SharedOrderDraft;
 }
 
 export interface TrashItem {
@@ -215,10 +216,24 @@ export async function parseBackupFile(file: File): Promise<{ orders: OrderRecord
  * that receives scheduled recovery emails remains server-side and is never
  * sent to or rendered by the browser.
  */
+export interface SharedOrderDraft {
+  updatedAt: number;
+  text: string;
+  title: string;
+  customerName: string;
+  customerPhone: string;
+  workerName: string;
+  category: OrderCategory;
+  status: 'pending' | 'completed' | 'paid';
+  orderDate: string;
+  items: ParsedItem[];
+}
+
 export interface PrivateBackupSnapshot {
   timestamp: number;
   orders: OrderRecord[];
   shopSettings?: ShopSettings;
+  draft?: SharedOrderDraft;
 }
 
 export type PrivateBackupFetchResult =
@@ -228,7 +243,7 @@ export type PrivateBackupFetchResult =
 
 export async function fetchPrivateBackup(): Promise<PrivateBackupFetchResult> {
   try {
-    const response = await fetch('/api/backup/snapshot', { cache: 'no-store' });
+    const response = await fetch('/api/backup/snapshot', { cache: 'no-store', credentials: 'same-origin' });
     if (response.status === 404) return { state: 'missing' };
     if (!response.ok) return { state: 'unavailable' };
     const payload = await response.json();
@@ -241,6 +256,9 @@ export async function fetchPrivateBackup(): Promise<PrivateBackupFetchResult> {
         timestamp: Number(payload.timestamp),
         orders: payload.orders as OrderRecord[],
         shopSettings: payload.shopSettings as ShopSettings | undefined,
+        draft: payload?.draft && typeof payload.draft === 'object' && !Array.isArray(payload.draft)
+          ? payload.draft as SharedOrderDraft
+          : undefined,
       },
     };
   } catch (error) {
@@ -251,13 +269,16 @@ export async function fetchPrivateBackup(): Promise<PrivateBackupFetchResult> {
 
 export async function syncPrivateBackup(
   orders: OrderRecord[],
-  settings?: ShopSettings
+  settings?: ShopSettings,
+  draft?: SharedOrderDraft
 ): Promise<boolean> {
   try {
     const response = await fetch('/api/backup/snapshot', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orders, shopSettings: settings }),
+      credentials: 'same-origin',
+      cache: 'no-store',
+      body: JSON.stringify({ orders, shopSettings: settings, draft }),
     });
     return response.ok;
   } catch (error) {
@@ -267,14 +288,18 @@ export async function syncPrivateBackup(
 }
 
 /** Debounces background syncs while the owner edits several fields quickly. */
-export function queuePrivateBackup(orders: OrderRecord[], settings?: ShopSettings): void {
+export function queuePrivateBackup(
+  orders: OrderRecord[],
+  settings?: ShopSettings,
+  draft?: SharedOrderDraft
+): void {
   if (remoteBackupTimer !== undefined) {
     window.clearTimeout(remoteBackupTimer);
   }
   remoteBackupTimer = window.setTimeout(() => {
     remoteBackupTimer = undefined;
-    void syncPrivateBackup(orders, settings);
-  }, 1_000);
+    void syncPrivateBackup(orders, settings, draft);
+  }, 350);
 }
 
 /**
