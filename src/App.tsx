@@ -519,6 +519,8 @@ export default function App() {
       setOrderDate(new Date().toISOString().split('T')[0]);
       setHasSaved(false);
       setEditingOrderId(null);
+      setActiveScreen('dashboard');
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
       showToast(
         `✓ ĐÃ HOÀN THÀNH & TỰ ĐỘNG CỘNG ${formatVND(res.total)} VÀO DOANH THU!`,
         'success'
