@@ -26,6 +26,7 @@ export const AuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -63,7 +64,7 @@ export const AuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ email: email.trim(), password, rememberMe }),
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok || !data.authenticated) throw new Error(data.error || 'Email hoặc mật khẩu không đúng.');
@@ -126,6 +127,18 @@ export const AuthGate: React.FC<React.PropsWithChildren> = ({ children }) => {
             </span>
           </label>
 
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/60 p-3 text-left transition hover:border-blue-200">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>
+              <span className="block text-sm font-bold text-slate-700">Ghi nhớ đăng nhập trên thiết bị này</span>
+              <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">Giữ phiên an toàn đến 30 ngày. Mật khẩu không được lưu trên điện thoại.</span>
+            </span>
+          </label>
           <button type="submit" disabled={isSubmitting || missingConfiguration} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 font-bold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
             {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
             {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập vào sổ may'}

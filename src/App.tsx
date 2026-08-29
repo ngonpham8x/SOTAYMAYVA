@@ -518,6 +518,7 @@ export default function App() {
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
           <DashboardStats
             orders={savedOrders}
+            onCreateOrder={openOrderEntry}
             onOpenHistory={() => setIsHistoryOpen(true)}
             onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           />

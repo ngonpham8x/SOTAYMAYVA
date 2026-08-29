@@ -204,6 +204,7 @@ type AppLoginAccount = { email: string; password: string };
 
 const AUTH_COOKIE_NAME = 'sotaymayva_session';
 const SESSION_DURATION_MS = 12 * 60 * 60 * 1000;
+const REMEMBER_SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
 function normalizeEmail(value: unknown): string {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -259,8 +260,8 @@ function signSession(payload: string): string {
   return createHmac('sha256', getSessionSecret()).update(payload).digest('base64url');
 }
 
-function createSessionToken(email: string): string {
-  const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + SESSION_DURATION_MS })).toString('base64url');
+function createSessionToken(email: string, durationMs = SESSION_DURATION_MS): string {
+  const payload = Buffer.from(JSON.stringify({ email, exp: Date.now() + durationMs })).toString('base64url');
   return `${payload}.${signSession(payload)}`;
 }
 
@@ -287,13 +288,13 @@ function getSessionEmail(req: express.Request): string | null {
   }
 }
 
-function sessionCookieOptions() {
+function sessionCookieOptions(durationMs = SESSION_DURATION_MS) {
   return {
     httpOnly: true,
     sameSite: 'lax' as const,
     secure: process.env.VERCEL === '1' || process.env.NODE_ENV === 'production',
     path: '/',
-    maxAge: SESSION_DURATION_MS,
+    maxAge: durationMs,
   };
 }
 
@@ -309,12 +310,14 @@ app.post('/api/auth/login', (req, res) => {
   }
   const email = normalizeEmail(req.body?.email);
   const password = typeof req.body?.password === 'string' ? req.body.password : '';
+  const rememberMe = req.body?.rememberMe === true;
   const account = getLoginAccounts().find((entry) => entry.email === email);
   if (!account || !secureEqual(password, account.password)) {
     return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng.' });
   }
-  res.cookie(AUTH_COOKIE_NAME, createSessionToken(email), sessionCookieOptions());
-  return res.json({ authenticated: true, email });
+  const durationMs = rememberMe ? REMEMBER_SESSION_DURATION_MS : SESSION_DURATION_MS;
+  res.cookie(AUTH_COOKIE_NAME, createSessionToken(email, durationMs), sessionCookieOptions(durationMs));
+  return res.json({ authenticated: true, email, rememberMe });
 });
 
 app.post('/api/auth/logout', (_req, res) => {

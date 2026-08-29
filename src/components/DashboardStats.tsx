@@ -13,6 +13,7 @@ import { formatVND } from '../utils/textParser';
 
 interface DashboardStatsProps {
   orders: OrderRecord[];
+  onCreateOrder: () => void;
   onOpenHistory: () => void;
   onOpenStatistics: () => void;
 }
@@ -30,6 +31,7 @@ function isFinished(order: OrderRecord): boolean {
 
 export const DashboardStats: React.FC<DashboardStatsProps> = ({
   orders,
+  onCreateOrder,
   onOpenHistory,
   onOpenStatistics,
 }) => {
@@ -51,6 +53,11 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
     { label: 'Đang thực hiện', value: `${dashboard.pending} đơn`, icon: Clock3, tone: 'text-amber-600 bg-amber-50', note: `${dashboard.totalItems} món / công đoạn` },
   ];
 
+  const quickActions = [
+    { label: 'Quét hoặc nhập', icon: ScanLine, onClick: onCreateOrder, tone: 'border-blue-100 text-blue-700 hover:border-blue-300 hover:bg-blue-50' },
+    { label: 'Kiểm tra đơn', icon: CheckCircle2, onClick: onOpenHistory, tone: 'border-emerald-100 text-emerald-700 hover:border-emerald-300 hover:bg-emerald-50' },
+    { label: 'Hoàn tất', icon: WalletCards, onClick: onOpenStatistics, tone: 'border-violet-100 text-violet-700 hover:border-violet-300 hover:bg-violet-50' },
+  ];
   return (
     <section aria-labelledby="focus-dashboard-title" className="space-y-4 sm:space-y-5">
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#083b88] via-[#0874b8] to-[#0aa99c] px-4 py-4 text-white shadow-lg shadow-blue-900/15 sm:px-5">
@@ -87,7 +94,18 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
       <div className="grid gap-3 lg:grid-cols-5">
         <div className="rounded-2xl border border-cyan-100 bg-gradient-to-r from-cyan-50 to-emerald-50 p-4 lg:col-span-3">
           <p className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><ScanLine className="h-4 w-4 text-cyan-600" /> Nhịp làm việc gọn gàng</p>
-          <p className="mt-1 text-xs font-medium text-slate-600">Chạm nút thêm phiếu, quét sổ tay hoặc nhập nhanh công việc trong ngày.</p>
+          <p className="mt-1 text-xs font-medium text-slate-600">Chọn nhanh một thao tác để bắt đầu công việc.</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {quickActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button key={action.label} type="button" onClick={action.onClick} className={`group rounded-xl border bg-white px-2 py-3 text-center text-[10px] font-extrabold transition sm:text-xs ${action.tone}`}>
+                  <Icon className="mx-auto mb-1 h-4 w-4 transition group-hover:-translate-y-0.5" />
+                  <span className="block truncate">{action.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <button type="button" onClick={onOpenHistory} className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition hover:border-cyan-200 hover:shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold text-slate-400">Đơn gần nhất</p><p className="mt-1 truncate text-sm font-extrabold text-slate-900">{dashboard.latestOrder?.title || 'Chưa có đơn nào'}</p><p className="mt-1 text-xs text-slate-500">{dashboard.latestOrder ? `${dashboard.latestOrder.items.length} món · ${formatVND(dashboard.latestOrder.finalAmount)}` : 'Bắt đầu một đơn mới để tạo nhịp làm việc.'}</p></div><ArrowRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-cyan-600" /></div>
