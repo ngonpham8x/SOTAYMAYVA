@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
-  Plus,
   ScanLine,
   Sparkles,
   WalletCards,
@@ -15,7 +14,6 @@ import { formatVND } from '../utils/textParser';
 
 interface DashboardStatsProps {
   orders: OrderRecord[];
-  onCreateOrder: () => void;
   onOpenHistory: () => void;
   onOpenStatistics: () => void;
 }
@@ -33,7 +31,6 @@ function isFinished(order: OrderRecord): boolean {
 
 export const DashboardStats: React.FC<DashboardStatsProps> = ({
   orders,
-  onCreateOrder,
   onOpenHistory,
   onOpenStatistics,
 }) => {
@@ -79,14 +76,6 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            id="btn-create-order"
-            type="button"
-            onClick={onCreateOrder}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 sm:text-sm"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.5} /> Thêm phiếu mới
-          </button>
           <button type="button" onClick={onOpenStatistics} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" title="Báo cáo thống kê">
             <BarChart3 className="h-4 w-4" />
           </button>

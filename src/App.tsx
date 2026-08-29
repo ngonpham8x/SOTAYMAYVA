@@ -25,7 +25,7 @@ import {
   checkAndRunDailyAutoBackup,
   queuePrivateBackup,
 } from './utils/backupVault';
-import { Check, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, Eye, EyeOff, Plus, ShieldCheck } from 'lucide-react';
 
 const INITIAL_TEXT = '';
 
@@ -73,9 +73,11 @@ export default function App() {
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isBackupOpen, setIsBackupOpen] = useState(false);
-  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
-  const [workspaceOffset, setWorkspaceOffset] = useState({ x: 0, y: 0 });
-  const workspaceDragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
+  const [activeScreen, setActiveScreen] = useState<'dashboard' | 'entry'>('dashboard');
+  const [isQuickAddVisible, setIsQuickAddVisible] = useState(true);
+  const [quickAddOffset, setQuickAddOffset] = useState({ x: 0, y: 0 });
+  const quickAddDragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
+  const quickAddMovedRef = useRef(false);
 
   // Saved Orders in localStorage
   const [savedOrders, setSavedOrders] = useState<OrderRecord[]>(() => {
@@ -129,37 +131,49 @@ export default function App() {
   };
 
 
-  const openWorkspace = () => {
-    setWorkspaceOffset({ x: 0, y: 0 });
-    setIsWorkspaceOpen(true);
+  const openOrderEntry = () => {
+    setActiveScreen('entry');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const closeWorkspace = () => {
-    setIsWorkspaceOpen(false);
-    setWorkspaceOffset({ x: 0, y: 0 });
+  const closeOrderEntry = () => {
+    setActiveScreen('dashboard');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleWorkspaceDragStart = (event: React.PointerEvent<HTMLElement>) => {
+  const handleQuickAddDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
-    workspaceDragRef.current = {
+    quickAddMovedRef.current = false;
+    quickAddDragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
-      originX: workspaceOffset.x,
-      originY: workspaceOffset.y,
+      originX: quickAddOffset.x,
+      originY: quickAddOffset.y,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handleWorkspaceDragMove = (event: React.PointerEvent<HTMLElement>) => {
-    const drag = workspaceDragRef.current;
+  const handleQuickAddDragMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = quickAddDragRef.current;
     if (!drag) return;
-    const x = Math.max(-160, Math.min(160, drag.originX + event.clientX - drag.startX));
-    const y = Math.max(-120, Math.min(120, drag.originY + event.clientY - drag.startY));
-    setWorkspaceOffset({ x, y });
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) quickAddMovedRef.current = true;
+    const x = Math.max(-Math.max(window.innerWidth - 230, 0), Math.min(16, drag.originX + deltaX));
+    const y = Math.max(-72, Math.min(Math.max(window.innerHeight - 160, 0), drag.originY + deltaY));
+    setQuickAddOffset({ x, y });
   };
 
-  const handleWorkspaceDragEnd = () => {
-    workspaceDragRef.current = null;
+  const handleQuickAddDragEnd = () => {
+    quickAddDragRef.current = null;
+  };
+
+  const handleQuickAddClick = () => {
+    if (quickAddMovedRef.current) {
+      quickAddMovedRef.current = false;
+      return;
+    }
+    openOrderEntry();
   };
 
   // Sync parsing when user updates raw text
@@ -500,26 +514,66 @@ export default function App() {
       )}
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
-        <DashboardStats
-          orders={savedOrders}
-          onCreateOrder={openWorkspace}
-          onOpenHistory={() => setIsHistoryOpen(true)}
-          onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-        />
+      {activeScreen === 'dashboard' && (
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 flex-1 w-full space-y-5 sm:space-y-6">
+          <DashboardStats
+            orders={savedOrders}
+            onOpenHistory={() => setIsHistoryOpen(true)}
+            onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
 
+          <StatisticsModal
+            isOpen
+            embedded
+            onClose={() => undefined}
+            orders={savedOrders}
+            shopSettings={shopSettings}
+            onToggleOrderStatus={handleToggleOrderStatus}
+          />
+        </main>
+      )}
 
-
-        <StatisticsModal
-          isOpen
-          embedded
-          onClose={() => undefined}
-          orders={savedOrders}
-          shopSettings={shopSettings}
-          onToggleOrderStatus={handleToggleOrderStatus}
-        />
-
-      </main>
+      {activeScreen === 'dashboard' && (
+        isQuickAddVisible ? (
+          <div
+            className="fixed right-4 top-20 z-30 flex touch-none items-center gap-1.5"
+            style={{ transform: `translate3d(${quickAddOffset.x}px, ${quickAddOffset.y}px, 0)` }}
+            onPointerDown={handleQuickAddDragStart}
+            onPointerMove={handleQuickAddDragMove}
+            onPointerUp={handleQuickAddDragEnd}
+            onPointerCancel={handleQuickAddDragEnd}
+          >
+            <button
+              id="btn-create-order"
+              type="button"
+              onClick={handleQuickAddClick}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3.5 text-xs font-extrabold text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700 active:scale-95 sm:text-sm"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.5} /> Thêm phiếu mới
+            </button>
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => setIsQuickAddVisible(false)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-700"
+              title="Ẩn nút thêm phiếu mới"
+              aria-label="Ẩn nút thêm phiếu mới"
+            >
+              <EyeOff className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setIsQuickAddVisible(true)}
+            className="fixed right-4 top-20 z-30 flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-white shadow-lg shadow-blue-600/25 transition hover:bg-blue-700"
+            title="Hiện nút thêm phiếu mới"
+            aria-label="Hiện nút thêm phiếu mới"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+        )
+      )}
 
       {/* Modals */}
       <ReceiptModal
@@ -533,17 +587,16 @@ export default function App() {
         orderDate={orderDate}
       />
 
-      {isWorkspaceOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/55 p-2 backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-label="Thêm phiếu mới">
-          <div className="max-h-[94vh] w-full max-w-7xl overflow-y-auto rounded-3xl border border-white/30 bg-slate-50 shadow-2xl transition-transform duration-75" style={{ transform: `translate3d(${workspaceOffset.x}px, ${workspaceOffset.y}px, 0)` }}>
-            <div className="space-y-5 p-3 sm:space-y-6 sm:p-5">
-            <section onPointerDown={handleWorkspaceDragStart} onPointerMove={handleWorkspaceDragMove} onPointerUp={handleWorkspaceDragEnd} onPointerCancel={handleWorkspaceDragEnd} className="flex touch-none cursor-grab flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5 active:cursor-grabbing">
+      {activeScreen === 'entry' && (
+        <main className="max-w-7xl mx-auto w-full flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+          <div className="space-y-5 sm:space-y-6">
+            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
               <div>
                 <h2 className="text-sm font-extrabold text-slate-900">Nhập phiếu mới</h2>
                 <p className="mt-0.5 text-xs text-slate-600">Thêm nội dung, quét ảnh sổ tay hoặc chọn dịch vụ và đơn giá.</p>
               </div>
-              <button type="button" onPointerDown={(event) => event.stopPropagation()} onClick={closeWorkspace} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100">
-                Đóng
+              <button type="button" onClick={closeOrderEntry} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100">
+                <ArrowLeft className="h-3.5 w-3.5" /> Trang chủ
               </button>
             </section>
 
@@ -607,9 +660,8 @@ export default function App() {
                 <ShieldCheck className="h-4 w-4" /> Khôi phục & sao lưu riêng tư
               </button>
             </div>
-            </div>
           </div>
-        </div>
+        </main>
       )}
       <ImageOcrModal
         isOpen={isImageOcrOpen}
