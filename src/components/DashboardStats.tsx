@@ -36,19 +36,36 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
   onOpenStatistics,
 }) => {
   const dashboard = useMemo(() => {
-    const today = localDateKey(new Date());
+    const currentDate = new Date();
+    const today = localDateKey(currentDate);
+    const weekStart = new Date(currentDate);
+    const dayOfWeek = currentDate.getDay();
+    weekStart.setDate(currentDate.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    const weekStartKey = localDateKey(weekStart);
+    const weekEndKey = localDateKey(weekEnd);
     const todayOrders = orders.filter((order) => order.date === today);
     const completedOrders = todayOrders.filter(isFinished);
     const pendingOrders = todayOrders.filter((order) => !isFinished(order));
-    const revenue = completedOrders.reduce((sum, order) => sum + (Number(order.finalAmount) || 0), 0);
+    const weeklyCompletedOrders = orders.filter(
+      (order) => isFinished(order) && order.date >= weekStartKey && order.date <= weekEndKey
+    );
+    const weeklyRevenue = weeklyCompletedOrders.reduce((sum, order) => sum + (Number(order.finalAmount) || 0), 0);
     const totalItems = todayOrders.reduce((sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
     const latestOrder = [...orders].sort((a, b) => b.createdAt - a.createdAt)[0];
-    return { completed: completedOrders.length, pending: pendingOrders.length, revenue, totalItems, latestOrder };
+    return {
+      completed: completedOrders.length,
+      pending: pendingOrders.length,
+      weeklyRevenue,
+      weeklyCompleted: weeklyCompletedOrders.length,
+      totalItems,
+      latestOrder,
+    };
   }, [orders]);
-
   const dateLabel = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' }).format(new Date());
   const todayCards = [
-    { label: 'Doanh thu hôm nay', value: formatVND(dashboard.revenue), icon: WalletCards, tone: 'text-emerald-600 bg-emerald-50', note: `${dashboard.completed} đơn hoàn thành` },
+    { label: 'Doanh thu tuần này', value: formatVND(dashboard.weeklyRevenue), icon: WalletCards, tone: 'text-emerald-600 bg-emerald-50', note: `${dashboard.weeklyCompleted} đơn hoàn thành trong tuần` },
     { label: 'Đơn đã xong', value: `${dashboard.completed} đơn`, icon: CheckCircle2, tone: 'text-blue-600 bg-blue-50', note: 'Sẵn sàng giao khách' },
     { label: 'Đang thực hiện', value: `${dashboard.pending} đơn`, icon: Clock3, tone: 'text-amber-600 bg-amber-50', note: `${dashboard.totalItems} món / công đoạn` },
   ];

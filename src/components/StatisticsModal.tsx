@@ -34,6 +34,7 @@ interface StatisticsModalProps {
   onToggleOrderStatus?: (id: string, newStatus: 'pending' | 'completed' | 'paid') => void;
   onEditOrder?: (order: OrderRecord) => void;
   onDeleteOrder?: (id: string) => void;
+  onOpenReceipt?: (order: OrderRecord) => void;
 }
 
 /**
@@ -67,6 +68,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
   onToggleOrderStatus,
   onEditOrder,
   onDeleteOrder,
+  onOpenReceipt,
 }) => {
   const [timeframe, setTimeframe] = useState<StatsTimeframe>('day');
   const [referenceDate, setReferenceDate] = useState<string>(() =>
@@ -637,7 +639,8 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
                         <div className="text-right"><p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">SĐT</p>{cleanPhone ? <a href={`tel:${cleanPhone}`} className="mt-0.5 inline-block font-bold text-emerald-700">{ord.customerPhone}</a> : <p className="mt-0.5 font-bold text-slate-400">—</p>}</div>
                       </div>
 
-                      {(onToggleOrderStatus || onEditOrder || onDeleteOrder) && <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                      {(onToggleOrderStatus || onEditOrder || onDeleteOrder || onOpenReceipt) && <div className="mt-3 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+                        {onOpenReceipt && <button type="button" onClick={() => onOpenReceipt(ord)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-bold text-violet-700"><Printer className="h-3.5 w-3.5" /> In / tải</button>}
                         {onEditOrder && <button type="button" onClick={() => onEditOrder(ord)} className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-bold text-blue-700"><Pencil className="h-3.5 w-3.5" /> Sửa</button>}
                         {onToggleOrderStatus && <button type="button" onClick={() => onToggleOrderStatus(ord.id, isCompleted ? 'pending' : 'completed')} className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700"><RefreshCw className="h-3.5 w-3.5" /> Cập nhật</button>}
                         {onDeleteOrder && <button type="button" onClick={() => onDeleteOrder(ord.id)} className="ml-auto inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-xs font-bold text-rose-700"><Trash2 className="h-3.5 w-3.5" /> Xóa</button>}
@@ -659,7 +662,7 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
                       <th className="py-2.5 px-3 text-right">Số món</th>
                       <th className="py-2.5 px-3 text-right">Thực thu</th>
                       <th className="py-2.5 px-3 text-center">Trạng thái</th>
-                      {(onToggleOrderStatus || onEditOrder || onDeleteOrder) && (
+                      {(onToggleOrderStatus || onEditOrder || onDeleteOrder || onOpenReceipt) && (
                         <th className="py-2.5 px-3 text-center">Hành động</th>
                       )}
                     </tr>
@@ -713,9 +716,14 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
                               </span>
                             )}
                           </td>
-                          {(onToggleOrderStatus || onEditOrder || onDeleteOrder) && (
+                          {(onToggleOrderStatus || onEditOrder || onDeleteOrder || onOpenReceipt) && (
                             <td className="py-2.5 px-3 text-center">
                               <div className="flex flex-wrap items-center justify-center gap-1.5">
+                                {onOpenReceipt && (
+                                  <button type="button" onClick={() => onOpenReceipt(ord)} className="inline-flex items-center gap-1 rounded-lg border border-violet-200 bg-violet-50 px-2 py-1 text-[11px] font-bold text-violet-700 transition hover:bg-violet-100" title="Mở phiếu để in hoặc tải ảnh">
+                                    <Printer className="h-3 w-3" /> In / tải
+                                  </button>
+                                )}
                                 {onEditOrder && (
                                   <button type="button" onClick={() => onEditOrder(ord)} className="inline-flex items-center gap-1 rounded-lg border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700 transition hover:bg-blue-100" title="Mở phiếu để sửa nội dung và tiền">
                                     <Pencil className="h-3 w-3" /> Sửa

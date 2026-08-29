@@ -165,6 +165,7 @@ export default function App() {
 
   // Modals state
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [receiptOrder, setReceiptOrder] = useState<OrderRecord | null>(null);
   const [isImageOcrOpen, setIsImageOcrOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
@@ -911,6 +912,10 @@ export default function App() {
             onToggleOrderStatus={handleToggleOrderStatus}
             onEditOrder={handleLoadOrder}
             onDeleteOrder={handleDeleteOrder}
+            onOpenReceipt={(order) => {
+              setReceiptOrder(order);
+              setIsReceiptModalOpen(true);
+            }}
           />
         </main>
       )}
@@ -972,13 +977,16 @@ export default function App() {
       {/* Modals */}
       <ReceiptModal
         isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        title={completedOrder?.title || title}
-        items={completedOrder?.items || items}
+        onClose={() => {
+          setIsReceiptModalOpen(false);
+          setReceiptOrder(null);
+        }}
+        title={receiptOrder?.title || completedOrder?.title || title}
+        items={receiptOrder?.items || completedOrder?.items || items}
         shopSettings={shopSettings}
-        customerName={completedOrder?.customerName || customerName}
-        workerName={completedOrder?.workerName || workerName}
-        orderDate={completedOrder?.date || orderDate}
+        customerName={receiptOrder?.customerName || completedOrder?.customerName || customerName}
+        workerName={receiptOrder?.workerName || completedOrder?.workerName || workerName}
+        orderDate={receiptOrder?.date || completedOrder?.date || orderDate}
       />
 
       {activeScreen === 'entry' && (
@@ -1039,7 +1047,7 @@ export default function App() {
                   shopSettings={shopSettings}
                   onSaveOrder={handleSaveOrder}
                   onCompleteAndSaveOrder={handleCompleteAndSaveOrder}
-                  onOpenReceiptModal={() => setIsReceiptModalOpen(true)}
+                  onOpenReceiptModal={() => { setReceiptOrder(null); setIsReceiptModalOpen(true); }}
                   hasSaved={hasSaved}
                 />
               </div>
