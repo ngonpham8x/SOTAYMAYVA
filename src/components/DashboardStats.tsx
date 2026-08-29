@@ -78,11 +78,11 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        {todayCards.map((card) => {
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+        {todayCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <button key={card.label} type="button" onClick={onOpenStatistics} className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md">
+            <button key={card.label} type="button" onClick={onOpenStatistics} className={`group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md ${index === 2 ? 'col-span-2 sm:col-span-1' : ''}`}>
               <div className="flex items-start justify-between gap-2"><span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">{card.label}</span><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.tone}`}><Icon className="h-4 w-4" /></span></div>
               <p className="mt-3 truncate text-xl font-black tracking-tight text-slate-900">{card.value}</p>
               <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-slate-500"><ArrowRight className="h-3 w-3 text-cyan-600 transition group-hover:translate-x-0.5" />{card.note}</p>

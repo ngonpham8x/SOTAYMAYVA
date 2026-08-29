@@ -53,6 +53,10 @@ export const BackupRecoveryModal: React.FC<BackupRecoveryModalProps> = ({
   const [isEmailSending, setIsEmailSending] = useState(false);
   const [emailNotice, setEmailNotice] = useState<string | null>(null);
   const [restoreConfirmId, setRestoreConfirmId] = useState<string | null>(null);
+  const [restoreNotice, setRestoreNotice] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   // Load snapshots & trash items
   const reloadData = () => {
@@ -65,6 +69,7 @@ export const BackupRecoveryModal: React.FC<BackupRecoveryModalProps> = ({
       reloadData();
       setEmailNotice(null);
       setRestoreConfirmId(null);
+      setRestoreNotice(null);
     }
   }, [isOpen]);
 
@@ -72,24 +77,46 @@ export const BackupRecoveryModal: React.FC<BackupRecoveryModalProps> = ({
 
   // Handle Restore from Snapshot
   const handleRestoreFromSnapshot = (snap: BackupSnapshot) => {
-    // Before restoring, create a safety snapshot of current state
-    if (savedOrders.length > 0) {
-      createSnapshot(savedOrders, shopSettings, 'Trước khi khôi phục dữ liệu cũ');
+    try {
+      if (savedOrders.length > 0) {
+        createSnapshot(savedOrders, shopSettings, 'Trước khi khôi phục dữ liệu cũ');
+      }
+      onRestoreOrders(snap.orders, snap.shopSettings);
+      reloadData();
+      setRestoreConfirmId(null);
+      setRestoreNotice({
+        type: 'success',
+        message: `Đã khôi phục thành công ${snap.orderCount} đơn hàng. Dữ liệu đã được lưu vào sổ tay.`,
+      });
+      showToast(`Đã khôi phục ${snap.orderCount} đơn hàng từ điểm sao lưu.`);
+    } catch (error) {
+      console.error('Snapshot restore failed:', error);
+      setRestoreNotice({
+        type: 'error',
+        message: 'Khôi phục chưa thành công. Dữ liệu hiện tại vẫn được giữ nguyên; hãy thử lại sau.',
+      });
     }
-
-    onRestoreOrders(snap.orders, snap.shopSettings);
-    showToast(`✓ Đã khôi phục thành công ${snap.orderCount} đơn hàng từ điểm sao lưu!`);
-    setRestoreConfirmId(null);
-    onClose();
   };
 
   // Handle Restore a single Trash Item
   const handleRestoreTrashItem = (item: TrashItem) => {
-    const updated = [item.order, ...savedOrders];
-    onRestoreOrders(updated);
-    removeFromTrash(item.id);
-    setTrashItems((prev) => prev.filter((t) => t.id !== item.id));
-    showToast(`✓ Đã hoàn tác & khôi phục đơn: "${item.order.title}"`);
+    try {
+      const updated = [item.order, ...savedOrders];
+      onRestoreOrders(updated);
+      removeFromTrash(item.id);
+      setTrashItems((prev) => prev.filter((trashItem) => trashItem.id !== item.id));
+      setRestoreNotice({
+        type: 'success',
+        message: `Đã khôi phục đơn “${item.order.title}” từ thùng rác.`,
+      });
+      showToast(`Đã khôi phục đơn “${item.order.title}”.`);
+    } catch (error) {
+      console.error('Trash restore failed:', error);
+      setRestoreNotice({
+        type: 'error',
+        message: 'Chưa thể khôi phục đơn từ thùng rác. Hãy thử lại sau.',
+      });
+    }
   };
 
   // Handle Empty Trash
@@ -128,22 +155,40 @@ export const BackupRecoveryModal: React.FC<BackupRecoveryModalProps> = ({
   };
 
   // Handle Import File
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
     if (!file) return;
 
+    setRestoreNotice({ type: 'info', message: 'Đang kiểm tra tệp sao lưu…' });
     try {
       const data = await parseBackupFile(file);
-      if (window.confirm(`Tìm thấy ${data.orders.length} đơn hàng trong tệp sao lưu. Bạn có muốn khôi phục ngay không?`)) {
-        if (savedOrders.length > 0) {
-          createSnapshot(savedOrders, shopSettings, 'Trước khi nhập tệp sao lưu mới');
-        }
-        onRestoreOrders(data.orders, data.settings);
-        showToast(`✓ Đã khôi phục thành công ${data.orders.length} đơn từ tệp!`);
-        onClose();
+      const shouldRestore = window.confirm(
+        `Tìm thấy ${data.orders.length} đơn hàng trong tệp sao lưu. Bạn có muốn khôi phục ngay không?`
+      );
+      if (!shouldRestore) {
+        setRestoreNotice({ type: 'info', message: 'Bạn đã hủy khôi phục; dữ liệu hiện tại không thay đổi.' });
+        return;
       }
-    } catch (err: any) {
-      alert(err.message || 'Không thể đọc tệp sao lưu. Vui lòng kiểm tra lại định dạng tệp .json.');
+
+      if (savedOrders.length > 0) {
+        createSnapshot(savedOrders, shopSettings, 'Trước khi nhập tệp sao lưu mới');
+      }
+      onRestoreOrders(data.orders, data.settings);
+      reloadData();
+      setRestoreNotice({
+        type: 'success',
+        message: `Đã khôi phục thành công ${data.orders.length} đơn hàng từ tệp. Dữ liệu đã được lưu vào sổ tay.`,
+      });
+      showToast(`Đã khôi phục ${data.orders.length} đơn hàng từ tệp sao lưu.`);
+    } catch (error: any) {
+      console.error('Backup file restore failed:', error);
+      setRestoreNotice({
+        type: 'error',
+        message: error?.message || 'Không thể đọc tệp sao lưu. Hãy chọn đúng tệp .json đã tải từ Sổ May Thông Minh.',
+      });
+    } finally {
+      input.value = '';
     }
   };
 
@@ -236,6 +281,35 @@ export const BackupRecoveryModal: React.FC<BackupRecoveryModalProps> = ({
 
         {/* Modal Body Content */}
         <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+          {restoreNotice && (
+            <div
+              role={restoreNotice.type === 'error' ? 'alert' : 'status'}
+              className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-xs font-medium ${
+                restoreNotice.type === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                  : restoreNotice.type === 'error'
+                    ? 'border-rose-200 bg-rose-50 text-rose-900'
+                    : 'border-blue-200 bg-blue-50 text-blue-900'
+              }`}
+            >
+              {restoreNotice.type === 'success' ? (
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : restoreNotice.type === 'error' ? (
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              ) : (
+                <RefreshCw className="mt-0.5 h-4 w-4 shrink-0" />
+              )}
+              <p className="flex-1 leading-relaxed">{restoreNotice.message}</p>
+              <button
+                type="button"
+                onClick={() => setRestoreNotice(null)}
+                className="-mr-1 -mt-1 rounded-md p-1 opacity-70 transition hover:bg-white/70 hover:opacity-100"
+                aria-label="Đóng thông báo khôi phục"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           
           {/* TAB 1: SNAPSHOTS */}
           {activeTab === 'snapshots' && (

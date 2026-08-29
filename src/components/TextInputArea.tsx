@@ -31,64 +31,76 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
   const [pasteSuccess, setPasteSuccess] = useState(false);
   const [pasteNotice, setPasteNotice] = useState<string | null>(null);
   const [speechSupported, setSpeechSupported] = useState(true);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textRef = useRef(text);
 
-  // Initialize Web Speech API if supported in browser
   useEffect(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    textRef.current = text;
+  }, [text]);
 
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = 'vi-VN';
-
-      recognition.onresult = (event: any) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        if (transcript.trim()) {
-          onChangeText((prev) => (prev ? `${prev} ${transcript.trim()}` : transcript.trim()));
-        }
-      };
-
-      recognition.onerror = (event: any) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    } else {
+  useEffect(() => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
       setSpeechSupported(false);
-    }
-  }, [onChangeText]);
-
-  const toggleVoice = () => {
-    if (!recognitionRef.current) {
-      alert('Trình duyệt của bạn chưa hỗ trợ nhận dạng giọng nói trực tiếp. Bạn có thể nhập tay hoặc dán văn bản.');
       return;
     }
 
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (err) {
-        console.error(err);
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'vi-VN';
+    recognition.onresult = (event: any) => {
+      let finalTranscript = '';
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        if (event.results[index].isFinal) finalTranscript += event.results[index][0].transcript;
       }
+      const spokenText = finalTranscript.trim();
+      if (!spokenText) return;
+      const nextText = [textRef.current.trim(), spokenText].filter(Boolean).join(textRef.current.trim() ? ' ' : '');
+      textRef.current = nextText;
+      onChangeText(nextText);
+      setVoiceNotice('Đã thêm nội dung từ micro. Bạn có thể tiếp tục nói hoặc bấm Dừng ghi âm.');
+    };
+    recognition.onerror = (event: any) => {
+      const messages: Record<string, string> = {
+        'not-allowed': 'Chưa được cấp quyền micro. Hãy cho phép Micro trong cài đặt trình duyệt rồi thử lại.',
+        'service-not-allowed': 'Trình duyệt đang chặn dịch vụ nhận dạng giọng nói. Hãy thử Chrome hoặc Safari bản mới nhất.',
+        'no-speech': 'Chưa nghe thấy giọng nói. Hãy nói gần micro hơn rồi thử lại.',
+        'network': 'Không thể kết nối dịch vụ nhận dạng giọng nói. Hãy kiểm tra Internet.',
+      };
+      setVoiceNotice(messages[event.error] || 'Micro chưa thể nhận dạng lúc này. Hãy thử lại sau ít giây.');
+      setIsListening(false);
+    };
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    setSpeechSupported(true);
+    return () => recognition.abort?.();
+  }, [onChangeText]);
+
+  const toggleVoice = () => {
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      setVoiceNotice(speechSupported ? 'Micro chưa sẵn sàng. Hãy tải lại trang rồi thử lại.' : 'Trình duyệt này chưa hỗ trợ nhận dạng giọng nói tiếng Việt. Hãy dùng Chrome hoặc Safari và cho phép Micro.');
+      return;
+    }
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+      setVoiceNotice('Đã dừng micro. Nội dung đã nhận được giữ nguyên trong ô nhập.');
+      return;
+    }
+    try {
+      setVoiceNotice('Đang xin quyền micro và lắng nghe tiếng Việt...');
+      recognition.start();
+      setIsListening(true);
+    } catch (error: any) {
+      if (error?.name === 'InvalidStateError') recognition.stop();
+      setIsListening(false);
+      setVoiceNotice('Không thể bật micro. Hãy kiểm tra quyền Micro của trình duyệt rồi thử lại.');
     }
   };
-
   const handlePaste = async () => {
     try {
       if (navigator.clipboard && navigator.clipboard.readText) {
@@ -191,6 +203,11 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
           </div>
         )}
 
+        {voiceNotice && (
+          <div role="status" className="border-b border-cyan-100 bg-cyan-50 px-4 py-2 text-xs font-medium text-cyan-900">
+            {voiceNotice}
+          </div>
+        )}
         {/* Textarea Workspace */}
         <div className="p-3 sm:p-5 relative bg-white">
           <textarea
@@ -232,7 +249,7 @@ export const TextInputArea: React.FC<TextInputAreaProps> = ({
                   ? 'bg-rose-600 text-white shadow-xs'
                   : 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
               }`}
-              title="Đọc bằng giọng nói tiếng Việt"
+              title={speechSupported ? 'Đọc bằng giọng nói tiếng Việt' : 'Trình duyệt chưa hỗ trợ nhận dạng giọng nói'}
             >
               {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-blue-600" />}
               <span>{isListening ? 'Dừng ghi âm' : 'Nói micro'}</span>

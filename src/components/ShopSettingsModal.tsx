@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Settings, Store, Phone, MapPin, User, FileText, Check, QrCode, CreditCard, Building } from 'lucide-react';
 import { ShopSettings } from '../types';
 import { getVietQrImageUrl, OFFICIAL_VIETQR_CARD_URL } from '../utils/vietQrHelper';
@@ -28,16 +28,36 @@ export const ShopSettingsModal: React.FC<ShopSettingsModalProps> = ({
   }));
   const [saved, setSaved] = useState(false);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setFormData({
+        ...settings,
+        phone: settings.phone || '0339.272.127',
+        bankName: settings.bankName || 'Eximbank',
+        bankBin: settings.bankBin || 'Eximbank',
+        bankAccount: settings.bankAccount || '100192186',
+        bankAccountName: settings.bankAccountName || 'NGUYEN THI NGOC',
+        bankBranch: settings.bankBranch || 'Eximbank Bảo Lộc',
+        showQrOnReceipt: settings.showQrOnReceipt !== false,
+      });
+      setSaved(false);
+    }
+  }, [isOpen, settings]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveChanges = () => {
     onSave(formData);
     setSaved(true);
-    setTimeout(() => {
+    window.setTimeout(() => {
       setSaved(false);
       onClose();
-    }, 800);
+    }, 900);
+  };
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    saveChanges();
   };
 
   const previewQrUrl = getVietQrImageUrl({
@@ -282,7 +302,8 @@ export const ShopSettingsModal: React.FC<ShopSettingsModalProps> = ({
               Đóng
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={saveChanges}
               className="inline-flex items-center gap-1.5 px-5 py-2 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition-all"
             >
               {saved ? (

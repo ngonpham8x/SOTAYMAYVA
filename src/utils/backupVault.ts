@@ -160,29 +160,54 @@ export function downloadJsonBackup(orders: OrderRecord[], settings?: ShopSetting
  * Parses and validates an uploaded backup file
  */
 export async function parseBackupFile(file: File): Promise<{ orders: OrderRecord[]; settings?: ShopSettings }> {
-  const text = await file.text();
-  const data = JSON.parse(text);
-
-  let orders: OrderRecord[] = [];
-  if (Array.isArray(data)) {
-    orders = data;
-  } else if (data && Array.isArray(data.orders)) {
-    orders = data.orders;
-  } else {
-    throw new Error('Định dạng tệp sao lưu không hợp lệ. Vui lòng chọn tệp .json hợp lệ.');
+  if (file.size === 0) {
+    throw new Error('Tệp sao lưu đang trống. Hãy chọn lại tệp .json đã tải từ ứng dụng.');
   }
 
-  // Validate items structure
-  orders.forEach((o, idx) => {
-    if (!o.id) o.id = `restored-order-${Date.now()}-${idx}`;
-    if (!o.items) o.items = [];
-    if (!o.date) o.date = new Date().toISOString().split('T')[0];
+  let data: unknown;
+  try {
+    const text = (await file.text()).replace(/^\uFEFF/, '');
+    data = JSON.parse(text);
+  } catch {
+    throw new Error('Không thể đọc tệp sao lưu. Hãy chọn đúng tệp .json hợp lệ.');
+  }
+
+  const payload = data && typeof data === 'object' && !Array.isArray(data)
+    ? data as { orders?: unknown; shopSettings?: ShopSettings }
+    : undefined;
+  const rawOrders = Array.isArray(data) ? data : payload?.orders;
+  if (!Array.isArray(rawOrders)) {
+    throw new Error('Tệp không có danh sách đơn hàng để khôi phục. Hãy chọn bản sao lưu .json của Sổ May Thông Minh.');
+  }
+  if (!rawOrders.every((order) => order && typeof order === 'object' && !Array.isArray(order))) {
+    throw new Error('Tệp sao lưu chứa dữ liệu đơn hàng không hợp lệ. Dữ liệu hiện tại chưa bị thay đổi.');
+  }
+
+  const now = Date.now();
+  const fallbackDate = new Date().toISOString().split('T')[0];
+  const numericValue = (value: unknown) => typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  const orders = rawOrders.map((rawOrder, index) => {
+    const order = rawOrder as Partial<OrderRecord>;
+    return {
+      ...order,
+      id: typeof order.id === 'string' && order.id.trim() ? order.id : `restored-order-${now}-${index}`,
+      title: typeof order.title === 'string' && order.title.trim() ? order.title : `Đơn khôi phục ${index + 1}`,
+      workerName: typeof order.workerName === 'string' ? order.workerName : '',
+      customerName: typeof order.customerName === 'string' ? order.customerName : '',
+      date: typeof order.date === 'string' && order.date ? order.date : fallbackDate,
+      rawText: typeof order.rawText === 'string' ? order.rawText : '',
+      items: Array.isArray(order.items) ? order.items : [],
+      subtotal: numericValue(order.subtotal),
+      advanceAmount: numericValue(order.advanceAmount),
+      discountAmount: numericValue(order.discountAmount),
+      finalAmount: numericValue(order.finalAmount),
+      status: order.status === 'completed' || order.status === 'paid' ? order.status : 'pending',
+      createdAt: numericValue(order.createdAt) || now,
+      updatedAt: numericValue(order.updatedAt) || now,
+    } as OrderRecord;
   });
 
-  return {
-    orders,
-    settings: data.shopSettings,
-  };
+  return { orders, settings: payload?.shopSettings };
 }
 
 /**

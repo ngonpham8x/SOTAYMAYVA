@@ -78,6 +78,7 @@ export default function App() {
   const [quickAddOffset, setQuickAddOffset] = useState({ x: 0, y: 0 });
   const quickAddDragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
   const quickAddMovedRef = useRef(false);
+  const isBlockingOverlayOpen = isReceiptModalOpen || isImageOcrOpen || isHistoryOpen || isSettingsOpen || isBackupOpen;
 
   // Saved Orders in localStorage
   const [savedOrders, setSavedOrders] = useState<OrderRecord[]>(() => {
@@ -168,7 +169,8 @@ export default function App() {
     quickAddDragRef.current = null;
   };
 
-  const handleQuickAddClick = () => {
+  const handleQuickAddClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
     if (quickAddMovedRef.current) {
       quickAddMovedRef.current = false;
       return;
@@ -534,7 +536,7 @@ export default function App() {
         </main>
       )}
 
-      {activeScreen === 'dashboard' && (
+      {activeScreen === 'dashboard' && !isBlockingOverlayOpen && (
         isQuickAddVisible ? (
           <div
             className="fixed right-3 z-50 flex touch-none items-center gap-1.5"
@@ -542,7 +544,6 @@ export default function App() {
               transform: `translate3d(${quickAddOffset.x}px, ${quickAddOffset.y}px, 0)`,
               bottom: 'calc(1rem + env(safe-area-inset-bottom))',
             }}
-            onClick={handleQuickAddClick}
             onPointerDown={handleQuickAddDragStart}
             onPointerMove={handleQuickAddDragMove}
             onPointerUp={handleQuickAddDragEnd}
@@ -551,6 +552,7 @@ export default function App() {
             <button
               id="btn-create-order"
               type="button"
+              onClick={handleQuickAddClick}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-extrabold text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-cyan-700 active:scale-95"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} /> Thêm phiếu mới
@@ -594,13 +596,9 @@ export default function App() {
       {activeScreen === 'entry' && (
         <main className="max-w-7xl mx-auto w-full flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
           <div className="space-y-5 sm:space-y-6">
-            <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
-              <div>
-                <h2 className="text-sm font-extrabold text-slate-900">Nhập phiếu mới</h2>
-                <p className="mt-0.5 text-xs text-slate-600">Thêm nội dung, quét ảnh sổ tay hoặc chọn dịch vụ và đơn giá.</p>
-              </div>
-              <button type="button" onClick={closeOrderEntry} className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100">
-                <ArrowLeft className="h-3.5 w-3.5" /> Trang chủ
+            <section className="flex items-center">
+              <button type="button" onClick={closeOrderEntry} className="inline-flex items-center gap-1.5 rounded-lg px-1 py-2 text-xs font-bold text-slate-600 transition hover:text-blue-700">
+                <ArrowLeft className="h-3.5 w-3.5" /> Quay lại trang chủ
               </button>
             </section>
 
