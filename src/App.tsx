@@ -538,7 +538,8 @@ export default function App() {
     setOrderDate(order.date);
     if (order.category) setCategory(order.category);
     if (order.status) setStatus(order.status);
-    setText(order.rawText || order.items.map((i) => `${i.name} ${i.unitPrice / 1000}k`).join('. '));
+    // Công đoạn đã được lưu ở bảng kê; không nạp lại văn bản gốc vào vùng nhập.
+    setText('');
     setItems(order.items);
     setHasSaved(true);
     setCompletedOrder(null);
