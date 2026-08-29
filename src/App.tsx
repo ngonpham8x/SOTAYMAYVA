@@ -471,15 +471,43 @@ export default function App() {
           onOpenHistory={() => setIsHistoryOpen(true)}
           onOpenStatistics={() => document.getElementById('home-statistics')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
-        {isWorkspaceOpen && (
-          <>
+
+
+
+        <StatisticsModal
+          isOpen
+          embedded
+          onClose={() => undefined}
+          orders={savedOrders}
+          shopSettings={shopSettings}
+          onToggleOrderStatus={handleToggleOrderStatus}
+        />
+
+      </main>
+
+      {/* Modals */}
+      <ReceiptModal
+        isOpen={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        title={title}
+        items={items}
+        shopSettings={shopSettings}
+        customerName={customerName}
+        workerName={workerName}
+        orderDate={orderDate}
+      />
+
+      {isWorkspaceOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/55 p-2 backdrop-blur-sm sm:p-5" role="dialog" aria-modal="true" aria-label="Thêm phiếu mới">
+          <div className="max-h-[94vh] w-full max-w-7xl overflow-y-auto rounded-3xl border border-white/30 bg-slate-50 shadow-2xl">
+            <div className="space-y-5 p-3 sm:space-y-6 sm:p-5">
             <section className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
               <div>
                 <h2 className="text-sm font-extrabold text-slate-900">Nhập phiếu mới</h2>
                 <p className="mt-0.5 text-xs text-slate-600">Thêm nội dung, quét ảnh sổ tay hoặc chọn dịch vụ và đơn giá.</p>
               </div>
               <button type="button" onClick={() => setIsWorkspaceOpen(false)} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-100">
-                Ẩn phần nhập
+                Đóng
               </button>
             </section>
 
@@ -543,33 +571,10 @@ export default function App() {
                 <ShieldCheck className="h-4 w-4" /> Khôi phục & sao lưu riêng tư
               </button>
             </div>
-          </>
-        )}
-
-
-        <StatisticsModal
-          isOpen
-          embedded
-          onClose={() => undefined}
-          orders={savedOrders}
-          shopSettings={shopSettings}
-          onToggleOrderStatus={handleToggleOrderStatus}
-        />
-
-      </main>
-
-      {/* Modals */}
-      <ReceiptModal
-        isOpen={isReceiptModalOpen}
-        onClose={() => setIsReceiptModalOpen(false)}
-        title={title}
-        items={items}
-        shopSettings={shopSettings}
-        customerName={customerName}
-        workerName={workerName}
-        orderDate={orderDate}
-      />
-
+            </div>
+          </div>
+        </div>
+      )}
       <ImageOcrModal
         isOpen={isImageOcrOpen}
         onClose={() => setIsImageOcrOpen(false)}

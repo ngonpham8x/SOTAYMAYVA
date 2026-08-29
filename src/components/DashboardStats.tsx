@@ -67,47 +67,31 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
     month: '2-digit',
   }).format(new Date());
 
-  const message = dashboard.completed > 0
-    ? `Bạn đã hoàn thành ${dashboard.completed} đơn hôm nay. Giữ nhịp thật tốt nhé!`
-    : 'Bắt đầu một ngày thật gọn gàng — từng đơn một, thật chỉn chu.';
 
   return (
     <section aria-labelledby="focus-dashboard-title" className="space-y-4 sm:space-y-5">
-      <div className="relative overflow-hidden rounded-3xl bg-slate-950 px-5 py-6 text-white shadow-xl shadow-slate-900/10 sm:px-7 sm:py-7">
-        <div className="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 left-1/3 h-48 w-48 rounded-full bg-blue-600/30 blur-3xl" />
-
-        <div className="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-xl">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-100">
-              <CalendarDays className="h-3.5 w-3.5" /> {dateLabel}
-            </span>
-            <h2 id="focus-dashboard-title" className="mt-4 text-2xl font-black tracking-tight sm:text-3xl">
-              Hôm nay mình làm thật tốt.
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-300">{message}</p>
-          </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              id="btn-create-order"
-              type="button"
-              onClick={onCreateOrder}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-slate-950 shadow-lg shadow-black/15 transition hover:-translate-y-0.5 hover:bg-cyan-50 active:translate-y-0"
-            >
-              <Plus className="h-5 w-5 text-blue-600" strokeWidth={2.5} /> Tạo phiếu mới
-            </button>
-            <button
-              type="button"
-              onClick={onOpenStatistics}
-              className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/15"
-            >
-              <BarChart3 className="h-4 w-4" /> Báo cáo
-            </button>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:px-5">
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><CalendarDays className="h-4 w-4" /></span>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{dateLabel}</p>
+            <h2 id="focus-dashboard-title" className="text-sm font-extrabold text-slate-900 sm:text-base">Tổng quan hôm nay</h2>
           </div>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            id="btn-create-order"
+            type="button"
+            onClick={onCreateOrder}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-3.5 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-700 active:scale-95 sm:text-sm"
+          >
+            <Plus className="h-4 w-4" strokeWidth={2.5} /> Thêm phiếu mới
+          </button>
+          <button type="button" onClick={onOpenStatistics} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" title="Báo cáo thống kê">
+            <BarChart3 className="h-4 w-4" />
+          </button>
+        </div>
       </div>
-
       <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs grid-cols-3 divide-x divide-slate-100">
         <div className="min-w-0 px-3 py-4 text-center sm:px-5 sm:text-left">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><WalletCards className="h-4 w-4" /></span>
