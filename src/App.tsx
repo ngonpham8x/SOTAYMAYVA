@@ -25,7 +25,7 @@ import {
   checkAndRunDailyAutoBackup,
   queuePrivateBackup,
 } from './utils/backupVault';
-import { ArrowLeft, Check, Eye, EyeOff, Plus, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Check, Eye, EyeOff, GripVertical, Plus, ShieldCheck } from 'lucide-react';
 
 const INITIAL_TEXT = '';
 
@@ -142,7 +142,7 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleQuickAddDragStart = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handleQuickAddDragStart = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     quickAddMovedRef.current = false;
     quickAddDragRef.current = {
@@ -154,7 +154,7 @@ export default function App() {
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handleQuickAddDragMove = (event: React.PointerEvent<HTMLDivElement>) => {
+  const handleQuickAddDragMove = (event: React.PointerEvent<HTMLButtonElement>) => {
     const drag = quickAddDragRef.current;
     if (!drag) return;
     const deltaX = event.clientX - drag.startX;
@@ -539,16 +539,25 @@ export default function App() {
       {activeScreen === 'dashboard' && !isBlockingOverlayOpen && (
         isQuickAddVisible ? (
           <div
-            className="fixed right-3 z-50 flex touch-none items-center gap-1.5"
+            className="fixed right-3 z-50 flex items-center gap-1.5"
             style={{
               transform: `translate3d(${quickAddOffset.x}px, ${quickAddOffset.y}px, 0)`,
               bottom: 'calc(1rem + env(safe-area-inset-bottom))',
             }}
-            onPointerDown={handleQuickAddDragStart}
-            onPointerMove={handleQuickAddDragMove}
-            onPointerUp={handleQuickAddDragEnd}
-            onPointerCancel={handleQuickAddDragEnd}
           >
+            <button
+              type="button"
+              onPointerDown={handleQuickAddDragStart}
+              onPointerMove={handleQuickAddDragMove}
+              onPointerUp={handleQuickAddDragEnd}
+              onPointerCancel={handleQuickAddDragEnd}
+              onClick={(event) => event.stopPropagation()}
+              className="flex h-9 w-6 touch-none cursor-grab items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-700 active:cursor-grabbing"
+              title="Giữ và kéo để di chuyển nút"
+              aria-label="Giữ và kéo để di chuyển nút"
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
             <button
               id="btn-create-order"
               type="button"
@@ -691,7 +700,7 @@ export default function App() {
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
         settings={shopSettings}
-        onSaveSettings={handleSaveSettings}
+        onSave={handleSaveSettings}
       />
 
       <BackupRecoveryModal
