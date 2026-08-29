@@ -236,6 +236,29 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
       dayMap,
     };
   }, [filteredOrders]);
+  // Revenue cards always show completed revenue, independent of the report filters.
+  const revenueSummary = useMemo(() => {
+    const reference = new Date();
+    const today = formatDateString(reference);
+    const dayOfWeek = reference.getDay();
+    const weekStart = new Date(reference.getFullYear(), reference.getMonth(), reference.getDate() + (dayOfWeek === 0 ? -6 : 1 - dayOfWeek));
+    const monthStart = new Date(reference.getFullYear(), reference.getMonth(), 1);
+    const completedOrders = orders.filter((order) => order.status === 'completed' || order.status === 'paid');
+    const summarize = (from?: string, to?: string) => {
+      const matching = completedOrders.filter((order) => !from || !to || (order.date >= from && order.date <= to));
+      return {
+        total: matching.reduce((sum, order) => sum + (Number(order.finalAmount) || 0), 0),
+        count: matching.length,
+      };
+    };
+
+    return {
+      all: summarize(),
+      day: summarize(today, today),
+      week: summarize(formatDateString(weekStart), today),
+      month: summarize(formatDateString(monthStart), today),
+    };
+  }, [orders]);
 
   // Navigate Period (Previous / Next)
   const handleShiftPeriod = (direction: -1 | 1) => {
@@ -452,14 +475,49 @@ export const StatisticsModal: React.FC<StatisticsModalProps> = ({
               </div>
               <div className="mt-3">
                 <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">
-                  {stats.totalRevenue.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span>
+                  {revenueSummary.all.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span>
                 </p>
                 <p className="text-[11px] text-emerald-700 font-semibold mt-1">
-                  Đã hoàn thành: {stats.completedOrders} đơn
+Tất cả: {revenueSummary.all.count} đơn đã hoàn thành
                 </p>
               </div>
             </div>
 
+            {/* Doanh thu hôm nay */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Doanh Thu Hôm Nay</span>
+                <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold"><Calendar className="w-4 h-4" /></div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">{revenueSummary.day.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span></p>
+                <p className="text-[11px] text-blue-700 font-semibold mt-1">{revenueSummary.day.count} đơn đã hoàn thành</p>
+              </div>
+            </div>
+
+            {/* Doanh thu tuần này */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Doanh Thu Tuần Này</span>
+                <div className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center font-bold"><TrendingUp className="w-4 h-4" /></div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">{revenueSummary.week.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span></p>
+                <p className="text-[11px] text-violet-700 font-semibold mt-1">{revenueSummary.week.count} đơn đã hoàn thành</p>
+              </div>
+            </div>
+
+            {/* Doanh thu tháng này */}
+            <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Doanh Thu Tháng Này</span>
+                <div className="w-8 h-8 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold"><Sparkles className="w-4 h-4" /></div>
+              </div>
+              <div className="mt-3">
+                <p className="text-xl sm:text-2xl font-black text-slate-900 font-mono tracking-tight">{revenueSummary.month.total.toLocaleString('vi-VN')} <span className="text-xs font-semibold text-slate-400">VNĐ</span></p>
+                <p className="text-[11px] text-cyan-700 font-semibold mt-1">{revenueSummary.month.count} đơn đã hoàn thành</p>
+              </div>
+            </div>
             {/* KPI 2: Số Đơn Hàng */}
             <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs relative overflow-hidden flex flex-col justify-between">
               <div className="flex items-center justify-between">
