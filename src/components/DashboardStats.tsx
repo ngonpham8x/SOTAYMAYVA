@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import {
   ArrowRight,
   BarChart3,
-  CalendarDays,
   CheckCircle2,
   Clock3,
   ScanLine,
@@ -39,87 +38,61 @@ export const DashboardStats: React.FC<DashboardStatsProps> = ({
     const todayOrders = orders.filter((order) => order.date === today);
     const completedOrders = todayOrders.filter(isFinished);
     const pendingOrders = todayOrders.filter((order) => !isFinished(order));
-    const revenue = completedOrders.reduce(
-      (sum, order) => sum + (Number(order.finalAmount) || 0),
-      0,
-    );
-    const totalItems = todayOrders.reduce(
-      (sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0),
-      0,
-    );
+    const revenue = completedOrders.reduce((sum, order) => sum + (Number(order.finalAmount) || 0), 0);
+    const totalItems = todayOrders.reduce((sum, order) => sum + order.items.reduce((itemSum, item) => itemSum + item.quantity, 0), 0);
     const latestOrder = [...orders].sort((a, b) => b.createdAt - a.createdAt)[0];
-
-    return {
-      completed: completedOrders.length,
-      pending: pendingOrders.length,
-      revenue,
-      totalItems,
-      latestOrder,
-    };
+    return { completed: completedOrders.length, pending: pendingOrders.length, revenue, totalItems, latestOrder };
   }, [orders]);
 
-  const dateLabel = new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-  }).format(new Date());
-
+  const dateLabel = new Intl.DateTimeFormat('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit' }).format(new Date());
+  const todayCards = [
+    { label: 'Doanh thu hôm nay', value: formatVND(dashboard.revenue), icon: WalletCards, tone: 'text-emerald-600 bg-emerald-50', note: `${dashboard.completed} đơn hoàn thành` },
+    { label: 'Đơn đã xong', value: `${dashboard.completed} đơn`, icon: CheckCircle2, tone: 'text-blue-600 bg-blue-50', note: 'Sẵn sàng giao khách' },
+    { label: 'Đang thực hiện', value: `${dashboard.pending} đơn`, icon: Clock3, tone: 'text-amber-600 bg-amber-50', note: `${dashboard.totalItems} món / công đoạn` },
+  ];
 
   return (
     <section aria-labelledby="focus-dashboard-title" className="space-y-4 sm:space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-xs sm:px-5">
-        <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><CalendarDays className="h-4 w-4" /></span>
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-400">{dateLabel}</p>
-            <h2 id="focus-dashboard-title" className="text-sm font-extrabold text-slate-900 sm:text-base">Tổng quan hôm nay</h2>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#083b88] via-[#0874b8] to-[#0aa99c] px-4 py-4 text-white shadow-lg shadow-blue-900/15 sm:px-5">
+        <div className="absolute -right-10 -top-14 h-40 w-40 rounded-full bg-cyan-200/20 blur-2xl" />
+        <div className="absolute -bottom-16 right-28 h-32 w-32 rounded-full bg-emerald-200/15 blur-xl" />
+        <div className="relative flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/15 text-amber-200 shadow-sm"><Sparkles className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-cyan-100">{dateLabel}</p>
+              <h2 id="focus-dashboard-title" className="mt-0.5 text-base font-black tracking-tight sm:text-lg">Hôm nay làm thật tốt.</h2>
+              <p className="mt-0.5 text-xs font-medium text-blue-50/90">Mỗi đơn rõ ràng, mỗi khoản thu an tâm.</p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={onOpenStatistics} className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:bg-slate-50" title="Báo cáo thống kê">
-            <BarChart3 className="h-4 w-4" />
+          <button type="button" onClick={onOpenStatistics} className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/25 bg-white/15 px-3 text-xs font-extrabold text-white backdrop-blur transition hover:bg-white/25">
+            <BarChart3 className="h-4 w-4" /> Báo cáo
           </button>
         </div>
       </div>
-      <div className="grid overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs grid-cols-3 divide-x divide-slate-100">
-        <div className="min-w-0 px-3 py-4 text-center sm:px-5 sm:text-left">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"><WalletCards className="h-4 w-4" /></span>
-          <p className="mt-2 truncate text-base font-black tracking-tight text-slate-900 sm:text-lg" title={formatVND(dashboard.revenue)}>{formatVND(dashboard.revenue)}</p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-[11px]">Doanh thu hôm nay</p>
-        </div>
-        <div className="min-w-0 px-3 py-4 text-center sm:px-5 sm:text-left">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><CheckCircle2 className="h-4 w-4" /></span>
-          <p className="mt-2 text-base font-black tracking-tight text-slate-900 sm:text-lg">{dashboard.completed} <span className="text-xs font-bold text-slate-400">đơn</span></p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-[11px]">Đã xong</p>
-        </div>
-        <div className="min-w-0 px-3 py-4 text-center sm:px-5 sm:text-left">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600"><Clock3 className="h-4 w-4" /></span>
-          <p className="mt-2 text-base font-black tracking-tight text-slate-900 sm:text-lg">{dashboard.pending} <span className="text-xs font-bold text-slate-400">đơn</span></p>
-          <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-400 sm:text-[11px]">Đang làm</p>
-        </div>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {todayCards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <button key={card.label} type="button" onClick={onOpenStatistics} className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition hover:-translate-y-0.5 hover:border-cyan-200 hover:shadow-md">
+              <div className="flex items-start justify-between gap-2"><span className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-slate-500">{card.label}</span><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${card.tone}`}><Icon className="h-4 w-4" /></span></div>
+              <p className="mt-3 truncate text-xl font-black tracking-tight text-slate-900">{card.value}</p>
+              <p className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-slate-500"><ArrowRight className="h-3 w-3 text-cyan-600 transition group-hover:translate-x-0.5" />{card.note}</p>
+            </button>
+          );
+        })}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
-        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 lg:col-span-3">
-          <div className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><Sparkles className="h-4 w-4 text-blue-600" /> Nhịp làm việc gọn gàng</div>
-          <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] font-bold text-slate-600">
-            <span className="rounded-xl bg-white px-2 py-2.5 shadow-xs"><ScanLine className="mx-auto mb-1 h-4 w-4 text-blue-600" />Quét hoặc nhập</span>
-            <span className="rounded-xl bg-white px-2 py-2.5 shadow-xs"><CheckCircle2 className="mx-auto mb-1 h-4 w-4 text-emerald-600" />Kiểm tra đơn</span>
-            <span className="rounded-xl bg-white px-2 py-2.5 shadow-xs"><WalletCards className="mx-auto mb-1 h-4 w-4 text-violet-600" />Hoàn tất</span>
-          </div>
+      <div className="grid gap-3 lg:grid-cols-5">
+        <div className="rounded-2xl border border-cyan-100 bg-gradient-to-r from-cyan-50 to-emerald-50 p-4 lg:col-span-3">
+          <p className="flex items-center gap-2 text-sm font-extrabold text-slate-900"><ScanLine className="h-4 w-4 text-cyan-600" /> Nhịp làm việc gọn gàng</p>
+          <p className="mt-1 text-xs font-medium text-slate-600">Chạm nút thêm phiếu, quét sổ tay hoặc nhập nhanh công việc trong ngày.</p>
         </div>
-
-        <button type="button" onClick={onOpenHistory} className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition hover:border-blue-200 hover:shadow-sm lg:col-span-2">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs font-bold text-slate-400">Đơn gần nhất</p>
-              <p className="mt-1 truncate text-sm font-extrabold text-slate-900">{dashboard.latestOrder?.title || 'Chưa có đơn nào'}</p>
-              <p className="mt-1 text-xs text-slate-500">{dashboard.latestOrder ? `${dashboard.latestOrder.items.length} món · ${formatVND(dashboard.latestOrder.finalAmount)}` : `Hôm nay đã có ${dashboard.totalItems} món / công đoạn`}</p>
-            </div>
-            <ArrowRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-blue-600" />
-          </div>
+        <button type="button" onClick={onOpenHistory} className="group rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-xs transition hover:border-cyan-200 hover:shadow-sm lg:col-span-2">
+          <div className="flex items-center justify-between gap-3"><div className="min-w-0"><p className="text-xs font-bold text-slate-400">Đơn gần nhất</p><p className="mt-1 truncate text-sm font-extrabold text-slate-900">{dashboard.latestOrder?.title || 'Chưa có đơn nào'}</p><p className="mt-1 text-xs text-slate-500">{dashboard.latestOrder ? `${dashboard.latestOrder.items.length} món · ${formatVND(dashboard.latestOrder.finalAmount)}` : 'Bắt đầu một đơn mới để tạo nhịp làm việc.'}</p></div><ArrowRight className="h-5 w-5 shrink-0 text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-cyan-600" /></div>
         </button>
       </div>
     </section>
   );
-};
+};

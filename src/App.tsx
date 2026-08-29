@@ -536,8 +536,12 @@ export default function App() {
       {activeScreen === 'dashboard' && (
         isQuickAddVisible ? (
           <div
-            className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-[60] flex touch-none items-center gap-1.5"
-            style={{ transform: `translate3d(${quickAddOffset.x}px, ${quickAddOffset.y}px, 0)` }}
+            className="fixed right-3 z-50 flex touch-none items-center gap-1.5"
+            style={{
+              transform: `translate3d(${quickAddOffset.x}px, ${quickAddOffset.y}px, 0)`,
+              bottom: 'calc(1rem + env(safe-area-inset-bottom))',
+            }}
+            onClick={handleQuickAddClick}
             onPointerDown={handleQuickAddDragStart}
             onPointerMove={handleQuickAddDragMove}
             onPointerUp={handleQuickAddDragEnd}
@@ -546,7 +550,6 @@ export default function App() {
             <button
               id="btn-create-order"
               type="button"
-              onClick={handleQuickAddClick}
               className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 px-4 text-sm font-extrabold text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-cyan-700 active:scale-95"
             >
               <Plus className="h-4 w-4" strokeWidth={2.5} /> Thêm phiếu mới
@@ -554,7 +557,7 @@ export default function App() {
             <button
               type="button"
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => setIsQuickAddVisible(false)}
+              onClick={(event) => { event.stopPropagation(); setIsQuickAddVisible(false); }}
               className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm transition hover:bg-slate-50 hover:text-slate-700"
               title="Ẩn nút thêm phiếu mới"
               aria-label="Ẩn nút thêm phiếu mới"
@@ -566,7 +569,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsQuickAddVisible(true)}
-            className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-3 z-[60] flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-cyan-700"
+            className="fixed right-3 z-50 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-xl shadow-blue-600/30 transition hover:from-blue-700 hover:to-cyan-700" style={{ bottom: 'calc(1rem + env(safe-area-inset-bottom))' }}
             title="Hiện nút thêm phiếu mới"
             aria-label="Hiện nút thêm phiếu mới"
           >
